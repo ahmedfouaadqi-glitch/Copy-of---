@@ -21,6 +21,9 @@ const HomePage: React.FC<NavigationProps> = ({ navigateTo }) => {
           ))}
         </div>
       </main>
+      <footer className="text-center p-6 text-sm text-gray-500 dark:text-gray-600">
+        صاحب الفكرة والمالك: احمد معروف
+      </footer>
     </div>
   );
 };
