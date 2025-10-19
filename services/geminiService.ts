@@ -1,3 +1,4 @@
+// FIX: Removed unused 'Blob' import to prevent type collision with the DOM Blob type.
 import { GoogleGenAI, GenerateContentResponse, Content, Part, Modality } from "@google/genai";
 import { ChatMessage, GroundingChunk } from '../types';
 
@@ -41,7 +42,8 @@ export const callGeminiApi = async (
 
         const response: GenerateContentResponse = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: { parts },
+            // FIX: Corrected the 'contents' structure to be an array of Content objects with a user role.
+            contents: [{ role: 'user', parts }],
         });
 
         return response.text;

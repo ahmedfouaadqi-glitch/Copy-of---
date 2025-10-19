@@ -24,14 +24,21 @@ const MediaInput: React.FC<MediaInputProps> = ({
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
-      const readers = Array.from(files).map(file => {
-        return new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      });
+      // FIX: Replaced `Array.from().map()` with a standard for-loop. This ensures `file` is correctly
+      // typed as a `File` object from the `FileList`, resolving a type inference issue where
+      // it was being treated as `unknown` and causing an error with `readAsDataURL`.
+      const readers: Promise<string>[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files.item(i);
+        if (file) {
+          readers.push(new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          }));
+        }
+      }
 
       Promise.all(readers).then(base64Images => {
         if (isSingleImageMode && onImageChange && base64Images.length > 0) {

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { NavigationProps } from '../types';
 import { callGeminiApi } from '../services/geminiService';
@@ -25,6 +26,7 @@ const PharmacyPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const contextApplied = useRef(false);
     const [isAddedToDiary, setIsAddedToDiary] = useState(false);
     const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+    const [initialUserQuery, setInitialUserQuery] = useState('');
 
 
     useEffect(() => {
@@ -97,6 +99,7 @@ const PharmacyPage: React.FC<NavigationProps> = ({ navigateTo }) => {
         setError(null);
         setResponseId(null);
         setAnalysisData(null);
+        setInitialUserQuery('');
     }
 
     const handleBack = () => {
@@ -108,12 +111,17 @@ const PharmacyPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     };
 
     const handleSubmit = () => {
+        const query = localImage ? (input || "تحليل الدواء في الصورة") : input.trim();
+        if (!query) return;
+
+        setInitialUserQuery(query);
+
         if (localImage) {
             const base64Data = localImage.split(',')[1];
             const mimeType = localImage.match(/data:(.*);base64,/)?.[1] || 'image/jpeg';
-            getMedicineInfo(input || "الدواء في الصورة", { mimeType, data: base64Data });
+            getMedicineInfo(query, { mimeType, data: base64Data });
         } else if (input.trim()) {
-            getMedicineInfo(input.trim());
+            getMedicineInfo(query);
         }
     };
 
@@ -217,7 +225,12 @@ const PharmacyPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                                 </div>
                                 
                                 {responseId && <Feedback responseId={responseId} />}
-                                <FollowUpChat initialModelContent={result} context={analysisData} systemInstruction="أنت صيدلي خبير. أجب عن أسئلة المستخدم المتابعة بخصوص الدواء بناءً على المعلومات الأولية." />
+                                <FollowUpChat 
+                                    initialUserPrompt={initialUserQuery}
+                                    initialModelContent={result} 
+                                    context={analysisData} 
+                                    systemInstruction="أنت صيدلي خبير. أجب عن أسئلة المستخدم المتابعة بخصوص الدواء بناءً على المعلومات الأولية." 
+                                />
                             </div>
                         )}
                     </div>

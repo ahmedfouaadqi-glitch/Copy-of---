@@ -6,12 +6,13 @@ import { Send, MessageSquare } from 'lucide-react';
 import MarkdownRenderer from './MarkdownRenderer';
 
 interface FollowUpChatProps {
+  initialUserPrompt: string;
   initialModelContent: string;
   context: AnalysisData | null;
   systemInstruction: string;
 }
 
-const FollowUpChat: React.FC<FollowUpChatProps> = ({ initialModelContent, context, systemInstruction }) => {
+const FollowUpChat: React.FC<FollowUpChatProps> = ({ initialUserPrompt, initialModelContent, context, systemInstruction }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -37,12 +38,12 @@ const FollowUpChat: React.FC<FollowUpChatProps> = ({ initialModelContent, contex
 
     // Construct history for API: initial context + current follow-up conversation
     const history: ChatMessage[] = [
-      { role: 'model', content: `المحتوى الأصلي للمناقشة:\n\n${initialModelContent}` },
+      { role: 'user', content: initialUserPrompt },
+      { role: 'model', content: initialModelContent },
       ...newMessages,
     ];
 
     try {
-      // FIX: Removed 'context' argument as callGeminiChatApi only accepts two arguments.
       const response = await callGeminiChatApi(history, systemInstruction);
       const modelMessage: ChatMessage = { role: 'model', content: response };
       setMessages([...newMessages, modelMessage]);

@@ -260,6 +260,10 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
     setFollowUpFor(null);
     nextStartTimeRef.current = 0;
     
+    const systemInstruction = isSingleShotMode
+        ? "مهمتك هي فقط تحويل كلام المستخدم إلى نص مكتوب بدقة باللغة العربية. لا تقم بالرد أو بدء حوار."
+        : "أنت 'عقل الروح التقنية'، مساعد صوتي ذكي ومتعدد الاستخدامات في تطبيق صحتك/كي. كن موجزاً ومتعاوناً ومباشراً. استجب للأوامر ونفذ الوظائف عند الطلب. خاطب المستخدم دائماً بصيغة المؤنث.";
+
     sessionPromiseRef.current = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
         callbacks: {
@@ -278,7 +282,7 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
           outputAudioTranscription: {},
           inputAudioTranscription: {},
           tools: [{ functionDeclarations: TOOLS }],
-          systemInstruction: "أنت 'عقل الروح التقنية'، مساعد صوتي ذكي ومتعدد الاستخدامات في تطبيق صحتك/كي. كن موجزاً ومتعاوناً ومباشراً. استجب للأوامر ونفذ الوظائف عند الطلب. خاطب المستخدم دائماً بصيغة المؤنث.",
+          systemInstruction: systemInstruction,
         },
     });
 
@@ -292,7 +296,7 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
     return () => {
       handleClose();
     };
-  }, [isOpen, handleMessage, handleClose, startListening]);
+  }, [isOpen, handleMessage, handleClose, startListening, isSingleShotMode]);
 
   const MicButton = () => {
     let Icon = Mic;

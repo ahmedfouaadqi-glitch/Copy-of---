@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { NavigationProps } from '../types';
 import { callGeminiApi } from '../services/geminiService';
@@ -28,6 +29,7 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const { analysisData, setAnalysisData } = useAnalysis();
     const contextApplied = useRef(false);
     const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+    const [initialUserQuery, setInitialUserQuery] = useState('');
 
     useEffect(() => {
         if (analysisData && !contextApplied.current) {
@@ -77,6 +79,11 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
 
     const handleSubmit = async () => {
         if (!input.trim() && !localImage) return;
+
+        const userQuery = mode === 'calories'
+            ? (localImage ? `تحليل صورة ${input || 'وجبة'}` : input)
+            : `ابتكر وصفة من: ${input}`;
+        setInitialUserQuery(userQuery);
 
         resetState(false);
         setIsLoading(true);
@@ -195,6 +202,7 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                         
                         {responseId && <Feedback responseId={responseId} />}
                         <FollowUpChat 
+                            initialUserPrompt={initialUserQuery}
                             initialModelContent={result} 
                             context={analysisData} 
                             systemInstruction={mode === 'calories' ? "أنت خبير تغذية. أجب عن أسئلة المستخدم المتابعة." : "أنت طاهٍ خبير. أجب عن أسئلة المستخدم المتابعة."} 
