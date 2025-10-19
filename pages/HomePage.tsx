@@ -1,0 +1,34 @@
+import React from 'react';
+import { NavigationProps } from '../types';
+import { FEATURES } from '../constants';
+import FeatureCard from '../components/FeatureCard';
+import { useTheme } from '../context/ThemeContext';
+import { Sun, Moon, HeartPulse } from 'lucide-react';
+
+const HomePage: React.FC<NavigationProps> = ({ navigateTo }) => {
+  const { theme, toggleTheme } = useTheme();
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-black">
+      <header className="p-4 flex justify-between items-center bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800 shadow-sm sticky top-0 z-10">
+        <div className="flex items-center gap-2">
+            <HeartPulse className="w-8 h-8 text-teal-500" />
+            <h1 className="text-xl font-bold text-teal-700 dark:text-gray-200">صحتك/كي</h1>
+        </div>
+        <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+          {theme === 'light' ? <Moon className="w-6 h-6 text-gray-700" /> : <Sun className="w-6 h-6 text-yellow-400" />}
+        </button>
+      </header>
+      <main className="p-4">
+        <p className="text-center text-gray-600 dark:text-gray-400 mb-6">تطبيق الحياة</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+          {FEATURES.map(feature => (
+            <FeatureCard key={feature.pageType} feature={feature} navigateTo={navigateTo} />
+          ))}
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default HomePage;

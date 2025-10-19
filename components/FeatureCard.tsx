@@ -1,0 +1,45 @@
+import React from 'react';
+import { Feature, NavigationProps } from '../types';
+import { ArrowLeft } from 'lucide-react';
+
+interface FeatureCardProps {
+  feature: Feature;
+  navigateTo: NavigationProps['navigateTo'];
+}
+
+const colorClasses: { [key: string]: { bg: string, text: string, border: string, iconBg: string, darkBg: string, darkText: string, darkBorder: string } } = {
+  teal: { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200', iconBg: 'bg-teal-500', darkBg: 'dark:bg-black', darkText: 'dark:text-teal-300', darkBorder: 'dark:border-teal-500/50' },
+  orange: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', iconBg: 'bg-orange-500', darkBg: 'dark:bg-black', darkText: 'dark:text-orange-300', darkBorder: 'dark:border-orange-500/50' },
+  green: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200', iconBg: 'bg-green-500', darkBg: 'dark:bg-black', darkText: 'dark:text-green-300', darkBorder: 'dark:border-green-500/50' },
+  pink: { bg: 'bg-pink-50', text: 'text-pink-700', border: 'border-pink-200', iconBg: 'bg-pink-500', darkBg: 'dark:bg-black', darkText: 'dark:text-pink-300', darkBorder: 'dark:border-pink-500/50' },
+  purple: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', iconBg: 'bg-purple-500', darkBg: 'dark:bg-black', darkText: 'dark:text-purple-300', darkBorder: 'dark:border-purple-500/50' },
+  indigo: { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200', iconBg: 'bg-indigo-500', darkBg: 'dark:bg-black', darkText: 'dark:text-indigo-300', darkBorder: 'dark:border-indigo-500/50' },
+  red: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', iconBg: 'bg-red-500', darkBg: 'dark:bg-black', darkText: 'dark:text-red-300', darkBorder: 'dark:border-red-500/50' },
+  amber: { bg: 'bg-amber-800/10', text: 'text-amber-800', border: 'border-amber-300', iconBg: 'bg-amber-700', darkBg: 'dark:bg-black', darkText: 'dark:text-amber-300', darkBorder: 'dark:border-amber-500/50' },
+  blue: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', iconBg: 'bg-blue-500', darkBg: 'dark:bg-black', darkText: 'dark:text-blue-300', darkBorder: 'dark:border-blue-500/50' },
+};
+
+const FeatureCard: React.FC<FeatureCardProps> = ({ feature, navigateTo }) => {
+  const { title, description, Icon, color, page } = feature;
+  const colors = colorClasses[color] || colorClasses.teal;
+
+  return (
+    <div
+      onClick={() => navigateTo(page)}
+      className={`w-full p-4 rounded-xl shadow-md cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${colors.bg} ${colors.darkBg} border ${colors.border} ${colors.darkBorder}`}
+    >
+      <div className="flex items-center space-x-4 rtl:space-x-reverse">
+        <div className={`p-3 rounded-lg ${colors.iconBg}`}>
+          <Icon className="w-7 h-7 text-white" />
+        </div>
+        <div className="flex-1">
+          <h3 className={`font-bold text-lg ${colors.text} ${colors.darkText}`}>{title}</h3>
+          <p className={`${colors.text} ${colors.darkText} opacity-80 text-sm`}>{description}</p>
+        </div>
+        <ArrowLeft className={`w-6 h-6 ${colors.text} ${colors.darkText} opacity-60`} />
+      </div>
+    </div>
+  );
+};
+
+export default FeatureCard;
