@@ -42,7 +42,6 @@ export const callGeminiApi = async (
 
         const response: GenerateContentResponse = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            // FIX: Corrected the 'contents' structure to be an array of Content objects with a user role.
             contents: [{ role: 'user', parts }],
         });
 
@@ -78,8 +77,8 @@ export const callGeminiChatApi = async (
             });
         }
         
-        // FIX: The `sendMessage` method expects the parts array directly, not an object.
-        const result = await chat.sendMessage(messageParts);
+        // FIX: The `sendMessage` method expects an object with a `message` property containing the parts.
+        const result = await chat.sendMessage({ message: messageParts });
 
         return result.text;
     } catch (error) {
@@ -94,7 +93,8 @@ export const callGeminiSearchApi = async (
     try {
         const response: GenerateContentResponse = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: prompt,
+            // FIX: Use the explicit Content object structure for robustness.
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
             config: {
                 tools: [{ googleSearch: {} }],
             },
@@ -160,7 +160,8 @@ export const analyzeCaloriesForVoice = async (foodName: string): Promise<string>
         const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت خبير تغذية. قدم تقديراً للسعرات الحرارية والمكونات الرئيسية (بروتين، كربوهيدرات، دهون) لطعام "${foodName}". كن موجزاً ومباشراً.`;
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: prompt
+            // FIX: Use the explicit Content object structure for robustness.
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
         });
         return response.text;
     } catch (error) {

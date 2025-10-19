@@ -42,6 +42,10 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
   
   const followUpForRef = useRef(followUpFor);
   followUpForRef.current = followUpFor;
+  
+  // FIX: Add a ref to track the current status without causing re-renders of dependent callbacks.
+  const statusRef = useRef(status);
+  statusRef.current = status;
 
 
   // Audio refs
@@ -207,7 +211,8 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
   }, [onFunctionCall, onSubmit, isSingleShotMode, handleClose, playOutputSpeech]);
   
   const startListening = useCallback(async () => {
-    if (status === 'listening' || !sessionPromiseRef.current) return;
+    // FIX: Use statusRef to prevent re-entry, making the function stable.
+    if (statusRef.current === 'listening' || !sessionPromiseRef.current) return;
     setStatus('listening');
 
     try {
@@ -244,10 +249,11 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
 
     } catch (err) {
         console.error('Error starting audio stream:', err);
-        setError('لم يتمكن من الوصول إلى الميكروفون.');
+        setError('حدث خطأ عند محاولة الوصول إلى الميكروفون. يرجى التأكد من منح الإذن.');
         setStatus('idle');
     }
-  }, [status]);
+    // FIX: Removed `status` dependency to stabilize the function and prevent re-render loops.
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
