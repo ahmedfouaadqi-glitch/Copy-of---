@@ -36,7 +36,8 @@ const SmartTip: React.FC<SmartTipProps> = ({ tipId, message }) => {
       >
         <X size={16} />
       </button>
-      <style jsx global>{`
+      {/* FIX: Replaced non-standard <style jsx> with a standard <style> tag for CSS animations. */}
+      <style>{`
         @keyframes fade-in-down {
           from { opacity: 0; transform: translateY(-10px); }
           to { opacity: 1; transform: translateY(0); }

@@ -1,123 +1,218 @@
-import { GoogleGenAI, Modality, Part } from '@google/genai';
-import { ChatMessage, GroundingChunk, DiaryEntry } from '../types';
-import { getDiaryEntries } from './diaryService';
+import { GoogleGenAI, GenerateContentResponse, Part, Modality, Content } from "@google/genai";
+import { ChatMessage, DiaryEntry, GroundingChunk } from '../types';
+import { getDiaryEntries } from "./diaryService";
 
-// Initialize the GoogleGenAI client. The API key is sourced from environment variables.
+// Per guidelines, initialize with apiKey from environment variables.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
 
 /**
- * A general-purpose function to call the Gemini API for content generation.
- * Handles both text-only and multimodal (text + image) prompts.
+ * A general-purpose function to call the Gemini API for text and vision tasks.
+ * Uses 'gemini-2.5-flash' for speed and efficiency.
+ * @param prompt - The text prompt.
+ * @param images - An optional array of base64 encoded images.
+ * @returns The generated text response.
  */
 export const callGeminiApi = async (prompt: string, images?: { mimeType: string; data: string }[]): Promise<string> => {
-  try {
-    const model = 'gemini-2.5-flash';
-    
-    let requestContents: any = prompt;
+    try {
+        const parts: Part[] = [{ text: prompt }];
+        if (images && images.length > 0) {
+            images.forEach(image => {
+                parts.push({
+                    inlineData: {
+                        mimeType: image.mimeType,
+                        data: image.data,
+                    },
+                });
+            });
+        }
 
-    if (images && images.length > 0) {
-      const textPart = { text: prompt };
-      const imageParts = images.map(img => ({
-        inlineData: {
-          mimeType: img.mimeType,
-          data: img.data,
-        },
-      }));
-      // For multimodal prompts, the text and images should be in the same parts array.
-      requestContents = { parts: [textPart, ...imageParts] };
-    }
-
-    const response = await ai.models.generateContent({
-      model: model,
-      contents: requestContents,
-    });
-
-    return response.text;
-  } catch (error) {
-    console.error('Gemini API call failed:', error);
-    throw new Error('فشل الاتصال بالذكاء الاصطناعي. يرجى المحاولة مرة أخرى.');
-  }
-};
-
-/**
- * Handles chat conversations with the Gemini API.
- * It takes the entire chat history and a system instruction.
- */
-export const callGeminiChatApi = async (history: ChatMessage[], systemInstruction: string): Promise<string> => {
-  try {
-    const model = 'gemini-2.5-flash';
-
-    // Convert the app's ChatMessage format to the API's Content format.
-    const contents = history.map(msg => {
-      const parts: Part[] = [{ text: msg.content }];
-      if (msg.imageUrl) {
-        parts.push({
-          inlineData: {
-            mimeType: msg.imageUrl.match(/data:(.*);base64,/)?.[1] || 'image/jpeg',
-            data: msg.imageUrl.split(',')[1],
-          },
+        const response: GenerateContentResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: { parts: parts },
         });
-      }
-      return { role: msg.role, parts };
-    });
 
-    const response = await ai.models.generateContent({
-      model,
-      contents,
-      config: {
-        systemInstruction: systemInstruction,
-      },
-    });
-
-    return response.text;
-  } catch (error) {
-    console.error('Gemini Chat API call failed:', error);
-    throw new Error('فشل الاتصال بالذكاء الاصطناعي. يرجى المحاولة مرة أخرى.');
-  }
+        // Per guidelines, access text directly from the response.
+        return response.text;
+    } catch (error) {
+        console.error("Error calling Gemini API:", error);
+        // Throw a more user-friendly error message.
+        throw new Error("فشل الاتصال بالذكاء الاصطناعي. يرجى المحاولة مرة أخرى.");
+    }
 };
 
 /**
- * Generates an image using the Imagen model based on a text prompt.
+ * Handles conversational chat with the Gemini API.
+ * Manages chat history and system instructions.
+ * Uses 'gemini-2.5-flash'.
+ * @param messages - The history of the conversation.
+ * @param systemInstruction - The system prompt to guide the model's behavior.
+ * @returns The model's next response in the conversation.
+ */
+export const callGeminiChatApi = async (messages: ChatMessage[], systemInstruction: string): Promise<string> => {
+    try {
+        // Filter out the initial greeting message from the model if it exists, to not confuse the model history
+        const filteredMessages = messages.filter(m => m.role !== 'model' || m.content.includes('اسالني عن اي شيء يخطر ببالك') === false);
+
+        const contents: Content[] = filteredMessages.map(msg => {
+            const parts: Part[] = [{ text: msg.content }];
+            if (msg.imageUrl) {
+                parts.unshift({ // Add image before text if it exists
+                    inlineData: {
+                        mimeType: msg.imageUrl.match(/data:(.*);base64,/)?.[1] || 'image/jpeg',
+                        data: msg.imageUrl.split(',')[1]
+                    }
+                });
+            }
+            return {
+                role: msg.role,
+                parts: parts
+            };
+        });
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: contents,
+            config: {
+                systemInstruction: systemInstruction,
+            },
+        });
+
+        return response.text;
+    } catch (error) {
+        console.error("Error in Gemini Chat API:", error);
+        throw new Error("فشل الاتصال بمساعد الدردشة. يرجى المحاولة مرة أخرى.");
+    }
+};
+
+/**
+ * Generates an image using the Imagen model.
+ * @param prompt - The text description of the image to generate.
+ * @returns A base64 encoded string of the generated image.
  */
 export const generateImage = async (prompt: string): Promise<string> => {
     try {
         const response = await ai.models.generateImages({
-            model: 'imagen-4.0-generate-001',
+            model: 'imagen-4.0-generate-001', // High-quality image generation model
             prompt: prompt,
             config: {
                 numberOfImages: 1,
-                outputMimeType: 'image/png',
-                aspectRatio: '1:1',
+                outputMimeType: 'image/jpeg', // JPEG is generally smaller
             },
         });
 
-        if (response.generatedImages && response.generatedImages.length > 0) {
-            const base64ImageBytes = response.generatedImages[0].image.imageBytes;
-            return `data:image/png;base64,${base64ImageBytes}`;
-        } else {
-            throw new Error('لم يتم إنشاء أي صورة.');
-        }
+        const base64ImageBytes = response.generatedImages[0].image.imageBytes;
+        return `data:image/jpeg;base64,${base64ImageBytes}`;
     } catch (error) {
-        console.error('Image generation failed:', error);
-        throw new Error('فشل إنشاء الصورة. يرجى المحاولة مرة أخرى.');
+        console.error("Error generating image:", error);
+        throw new Error("فشل إنشاء الصورة. قد يكون الطلب غير متوافق مع سياسات الأمان.");
     }
 };
 
-// FIX: Added generateSpeech function to handle text-to-speech generation.
 /**
- * Generates speech from text using the TTS model.
- * Returns a base64 encoded audio string.
+ * Analyzes the user's diary entries for the past week and provides insights.
+ * @returns A string containing the analysis and advice.
+ */
+export const analyzeDiaryEntries = async (): Promise<string> => {
+    try {
+        const allEntries: { date: string, entries: DiaryEntry[] }[] = [];
+        // Get entries for the last 7 days
+        for (let i = 0; i < 7; i++) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const entriesForDate = getDiaryEntries(date);
+            if (entriesForDate.length > 0) {
+                allEntries.push({ date: date.toLocaleDateString('ar-EG'), entries: entriesForDate });
+            }
+        }
+
+        if (allEntries.length === 0) {
+            return "لا توجد بيانات كافية في يومياتك خلال الأسبوع الماضي لتقديم تحليل. حاول تسجيل أنشطتك اليومية بانتظام!";
+        }
+
+        // Format data for the prompt
+        const formattedData = allEntries.map(day => 
+            `**${day.date}:**\n` + day.entries.map(e => `- ${e.title}: ${e.details}`).join('\n')
+        ).join('\n\n');
+
+        const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت مستشار صحي استباقي. حلل بيانات اليوميات التالية للمستخدم على مدار الأسبوع الماضي. قدم رؤى واضحة حول الأنماط الإيجابية والسلبية، وقدم نصيحتين عمليتين ومخصصتين لتحسين صحته بناءً على البيانات المقدمة فقط.\n\n**بيانات الأسبوع:**\n${formattedData}`;
+        
+        const response = await callGeminiApi(prompt);
+        return response;
+
+    } catch (error) {
+        console.error("Error analyzing diary entries:", error);
+        throw new Error("فشل تحليل بيانات اليوميات.");
+    }
+};
+
+/**
+ * Calls Gemini API with Google Search grounding for up-to-date information.
+ * @param query - The user's search query.
+ * @returns An object with the text response and grounding source chunks.
+ */
+export const callGeminiSearchApi = async (query: string): Promise<{ text: string, groundingChunks: GroundingChunk[] }> => {
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: query,
+            config: {
+                tools: [{ googleSearch: {} }],
+            },
+        });
+        
+        const text = response.text;
+        const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+        
+        // Ensure the chunks conform to the GroundingChunk type
+        const groundingChunks: GroundingChunk[] = chunks
+            .filter((c: any) => c.web && c.web.uri)
+            .map((c: any) => ({
+                web: {
+                    uri: c.web.uri,
+                    title: c.web.title || 'مصدر غير معنون',
+                }
+            }));
+
+        return { text, groundingChunks };
+    } catch (error) {
+        console.error("Error in Gemini Search API:", error);
+        throw new Error("فشل البحث. يرجى المحاولة مرة أخرى.");
+    }
+};
+
+/**
+ * A specialized function to get calorie information for a food item.
+ * Used for voice commands.
+ * @param foodName - The name of the food item.
+ * @returns A string with the nutritional analysis.
+ */
+export const analyzeCaloriesForVoice = async (foodName: string): Promise<string> => {
+     try {
+        const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت خبير تغذية. قدم تحليلاً موجزاً جداً للسعرات الحرارية والمكونات الرئيسية (بروتين، كربوهيدرات، دهون) لطعام "${foodName}". كن مباشراً ومختصراً.`;
+        const result = await callGeminiApi(prompt);
+        return result;
+    } catch (error) {
+        console.error("Error analyzing calories for voice:", error);
+        throw new Error("فشل تحليل السعرات الحرارية.");
+    }
+};
+
+
+/**
+ * Generates speech from text using the Gemini TTS model.
+ * @param text - The text to convert to speech.
+ * @returns A base64 encoded string of the audio data.
  */
 export const generateSpeech = async (text: string): Promise<string> => {
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-preview-tts',
-            contents: [{ parts: [{ text }] }],
+            model: "gemini-2.5-flash-preview-tts",
+            contents: [{ parts: [{ text: text }] }],
             config: {
                 responseModalities: [Modality.AUDIO],
                 speechConfig: {
                     voiceConfig: {
-                        prebuiltVoiceConfig: { voiceName: 'Kore' }, // Same voice as in modal
+                        prebuiltVoiceConfig: { voiceName: 'Kore' }, // A pleasant, clear voice
                     },
                 },
             },
@@ -125,134 +220,11 @@ export const generateSpeech = async (text: string): Promise<string> => {
 
         const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
         if (!base64Audio) {
-            throw new Error('No audio data received from API.');
+            throw new Error("No audio data received from API.");
         }
         return base64Audio;
     } catch (error) {
-        console.error('Speech generation failed:', error);
-        throw new Error('فشل إنشاء الكلام. يرجى المحاولة مرة أخرى.');
-    }
-};
-
-// FIX: Added analyzeCaloriesForVoice function to handle voice-based calorie analysis.
-/**
- * Analyzes the calories for a given food item for voice responses.
- */
-export const analyzeCaloriesForVoice = async (foodName: string): Promise<string> => {
-    const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت خبير تغذية. قدم تحليلاً موجزاً جداً للسعرات الحرارية في "${foodName}". اذكر الرقم التقريبي للسعرات الحرارية ومعلومة صحية واحدة سريعة. كن مختصراً ومباشراً.`;
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-        });
-        return response.text;
-    } catch (error) {
-        console.error('Calorie analysis for voice failed:', error);
-        return `عذراً، لم أتمكن من تحليل السعرات الحرارية لـ ${foodName} حالياً.`;
-    }
-};
-
-/**
- * Calls the Gemini API with Google Search grounding enabled.
- * Returns the generated text and a list of web sources.
- */
-export const callGeminiSearchApi = async (prompt: string): Promise<{ text: string; groundingChunks: GroundingChunk[] }> => {
-    const trimmedPrompt = prompt.trim();
-
-    // Specific name check should come first.
-    if (trimmedPrompt.includes('احمد معروف') || trimmedPrompt.includes('أحمد معروف')) {
-        const ahmedBio = `أهلاً بك، يبدو أنك تبحث عن **أحمد معروف**.
-
-أحمد معروف هو صاحب الفكرة والمالك لتطبيق **"صحتك/كي (AiHealthQ)"**.
-
-هو خبير متخصص في مجال التكنولوجيا المالية (FinTech)، حيث يمتلك رؤية عميقة في كيفية تسخير التكنولوجيا لتبسيط الخدمات وجعلها في متناول الجميع. من خلال خبرته، استلهم فكرة إنشاء تطبيق "صحتك/كي" ليطبق نفس المبادئ في قطاع الصحة والحياة، بهدف تمكين الأفراد من إدارة حياتهم الصحية بذكاء وسهولة عبر حلول تقنية مبتكرة.`;
-        return { text: ahmedBio, groundingChunks: [] };
-    }
-
-    const appNameRegex = /صحتك[\s/\\-]*كي|aihealthq/i;
-    if (appNameRegex.test(trimmedPrompt)) {
-        const appDescription = `
-أهلاً بك! أنا **صحتك/كي (AiHealthQ)**، تطبيق الحياة والصحة ورفيقك الرقمي.
-
-**مهمتي:** هي تمكينك من عيش حياة أكثر صحة وسعادة من خلال توفير أدوات ذكية وسهولة الاستخدام. أنا هنا لأكون مستشارك الشخصي في مختلف جوانب حياتك.
-
-**ماذا أقدم؟**
-*   **الكاميرا الذكية:** لتحليل الطعام، النباتات، الأدوية، وحالة البشرة.
-*   **مركز المستشار الشخصي:** للحصول على نصائح مخصصة في الجمال، الموضة، والديكور.
-*   **مستشار الطهي:** لابتكار وصفات صحية وحساب سعراتها الحرارية.
-*   **الصيدلية المنزلية:** للتعرف على معلومات الأدوية.
-*   **يومياتي:** لتسجيل وتتبع أهدافك الصحية.
-*   **البحث الشامل:** للإجابة على أي سؤال لديك بالاعتماد على أحدث المعلومات.
-
-أنا هنا لأجعل رحلتك نحو حياة أفضل أسهل وأكثر متعة. كيف يمكنني مساعدتك اليوم؟
-
----
-*صاحب الفكرة والمالك: **أحمد معروف***`;
-        return { text: appDescription, groundingChunks: [] };
-    }
-    
-    try {
-        const model = 'gemini-2.5-flash';
-        const response = await ai.models.generateContent({
-            model: model,
-            contents: `**مهمتك: الرد باللغة العربية الفصحى فقط.** ${prompt}`,
-            config: {
-                tools: [{ googleSearch: {} }],
-            },
-        });
-
-        const text = response.text;
-        const groundingChunks = (response.candidates?.[0]?.groundingMetadata?.groundingChunks as GroundingChunk[]) || [];
-        
-        return { text, groundingChunks };
-    } catch (error) {
-        console.error('Gemini Search API call failed:', error);
-        throw new Error('فشل البحث. يرجى المحاولة مرة أخرى.');
-    }
-};
-
-/**
- * Analyzes the user's diary entries for the past week and provides insights.
- */
-export const analyzeDiaryEntries = async (): Promise<string> => {
-    let allEntries: { date: string, entries: DiaryEntry[] }[] = [];
-    for (let i = 0; i < 7; i++) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const entries = getDiaryEntries(date);
-        if (entries.length > 0) {
-            allEntries.push({ date: date.toLocaleDateString('ar-EG'), entries });
-        }
-    }
-
-    if (allEntries.length === 0) {
-        return "لم أجد أي إدخالات في يومياتك خلال الأسبوع الماضي. حاول تسجيل أنشطتك اليومية أولاً!";
-    }
-
-    const formattedEntries = allEntries.map(day => 
-        `**${day.date}:**\n${day.entries.map(e => `- ${e.title}: ${e.details}`).join('\n')}`
-    ).join('\n\n');
-
-    const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت مستشار صحي ذكي ومحفز. حلل بيانات يوميات المستخدم التالية للأسبوع الماضي.
-    
-    **البيانات:**
-    ${formattedEntries}
-    
-    **المطلوب:**
-    1.  قدم للمستخدم **3 ملاحظات بناءة وموجزة** حول أنماطه (مثال: انتظام في شرب الماء، قلة النشاط في أيام معينة).
-    2.  قدم **نصيحة واحدة قابلة للتنفيذ** يمكنه تطبيقها في الأسبوع القادم لتحسين نمط حياته.
-    3.  أنهِ ردك بعبارة تشجيعية.
-    
-    كن إيجابياً وداعماً في أسلوبك.`;
-
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-        });
-        return response.text;
-    } catch (error) {
-        console.error('Diary analysis failed:', error);
-        throw new Error('فشل تحليل بيانات اليوميات. يرجى المحاولة مرة أخرى.');
+        console.error("Error generating speech:", error);
+        throw new Error("فشل تحويل النص إلى كلام.");
     }
 };

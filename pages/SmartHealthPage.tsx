@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { NavigationProps, Feature } from '../types';
 import { callGeminiApi } from '../services/geminiService';
@@ -50,25 +51,33 @@ const SmartHealthPage: React.FC<SmartHealthPageProps> = ({ feature, navigateTo }
   }, [feature.pageType]);
 
   useEffect(() => {
-    if (analysisData?.analysisType === 'skin' && feature.pageType === 'beauty') {
-        const skinCareBranch = categories.find(c => c.id === 'skincare');
-        if (skinCareBranch && 'subCategories' in skinCareBranch && skinCareBranch.subCategories) {
-            const skinType = analysisData.analysisDetails?.toLowerCase();
-            let targetCategory;
-            
-            if (skinType?.includes('دهنية')) targetCategory = skinCareBranch.subCategories.find(sc => sc.id === 'skin-oily');
-            else if (skinType?.includes('جافة')) targetCategory = skinCareBranch.subCategories.find(sc => sc.id === 'skin-type');
-            else if (skinType?.includes('مختلطة')) targetCategory = skinCareBranch.subCategories.find(sc => sc.id === 'skin-combo');
-            
-            if (targetCategory) {
-                 setNavigationStack([skinCareBranch, targetCategory]);
-            } else {
-                 setNavigationStack([skinCareBranch]);
-            }
+    if (analysisData) {
+        // FIX: Pre-fill image from context passed from another page (like ImageAnalysisPage).
+        if (analysisData.image && !localImage) {
+            setLocalImage(analysisData.image);
         }
-        setAnalysisData(null); // Consume the context
+
+        // Handle specific navigation for skin analysis
+        if (analysisData.analysisType === 'skin' && feature.pageType === 'beauty') {
+            const skinCareBranch = categories.find(c => c.id === 'skincare');
+            if (skinCareBranch && 'subCategories' in skinCareBranch && skinCareBranch.subCategories) {
+                const skinType = analysisData.analysisDetails?.toLowerCase();
+                let targetCategory;
+                
+                if (skinType?.includes('دهنية')) targetCategory = skinCareBranch.subCategories.find(sc => sc.id === 'skin-oily');
+                else if (skinType?.includes('جافة')) targetCategory = skinCareBranch.subCategories.find(sc => sc.id === 'skin-type');
+                else if (skinType?.includes('مختلطة')) targetCategory = skinCareBranch.subCategories.find(sc => sc.id === 'skin-combo');
+                
+                if (targetCategory) {
+                     setNavigationStack([skinCareBranch, targetCategory]);
+                } else {
+                     setNavigationStack([skinCareBranch]);
+                }
+            }
+            setAnalysisData(null); // Consume the context
+        }
     }
-  }, [analysisData, categories, feature.pageType, setAnalysisData]);
+  }, [analysisData, categories, feature.pageType, setAnalysisData, localImage]);
   
   const currentCategories = navigationStack.length > 0 ? navigationStack[navigationStack.length - 1].subCategories : categories;
   const currentSubTitle = navigationStack.length > 0 ? navigationStack.map(item => item.name).join(' > ') : undefined;

@@ -12,6 +12,7 @@ import GlobalSearchPage from './pages/GlobalSearchPage';
 
 import { ThemeProvider } from './context/ThemeContext';
 import { AnalysisProvider } from './context/AnalysisContext';
+import { CameraProvider, useCamera } from './context/CameraContext';
 import SplashScreen from './components/SplashScreen';
 import { FEATURES } from './constants';
 import { Toaster } from 'react-hot-toast';
@@ -20,10 +21,11 @@ import OnboardingGuide from './components/OnboardingGuide';
 import { playSound } from './services/soundService';
 
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>({ type: 'home' });
   const [isLoading, setIsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const { isCameraOpen } = useCamera();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -84,18 +86,27 @@ const App: React.FC = () => {
   if (isLoading) {
     return <SplashScreen />;
   }
+  
+  return (
+      <div className="bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 min-h-screen font-sans">
+          <div className="pb-20"> {/* Padding bottom to prevent content from being hidden by the nav bar */}
+              {renderPage()}
+          </div>
+          {!isCameraOpen && <BottomNavBar currentPage={currentPage} navigateTo={navigateTo} />}
+           {showOnboarding && <OnboardingGuide onComplete={handleOnboardingComplete} />}
+      </div>
+  );
+}
 
+
+const App: React.FC = () => {
   return (
     <ThemeProvider>
       <AnalysisProvider>
-        <Toaster position="top-center" reverseOrder={false} />
-        <div className="bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 min-h-screen font-sans">
-            <div className="pb-20"> {/* Padding bottom to prevent content from being hidden by the nav bar */}
-                {renderPage()}
-            </div>
-            <BottomNavBar currentPage={currentPage} navigateTo={navigateTo} />
-        </div>
-        {showOnboarding && <OnboardingGuide onComplete={handleOnboardingComplete} />}
+        <CameraProvider>
+            <Toaster position="top-center" reverseOrder={false} />
+            <AppContent />
+        </CameraProvider>
       </AnalysisProvider>
     </ThemeProvider>
   );

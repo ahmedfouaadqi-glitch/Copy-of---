@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { GoogleGenAI, LiveSession, LiveServerMessage, Modality, Blob as GenAI_Blob, FunctionCall } from '@google/genai';
+// FIX: Removed non-exported `LiveSession` type. It will be treated as `any`.
+import { GoogleGenAI, LiveServerMessage, Modality, Blob as GenAI_Blob, FunctionCall } from '@google/genai';
 import { X, Mic, Info, Loader2, Sparkles } from 'lucide-react';
 import { TOOLS } from '../constants/tools';
 import { generateImage, analyzeCaloriesForVoice, generateSpeech } from '../services/geminiService';
@@ -47,7 +48,8 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
   const nextStartTimeRef = useRef(0);
   const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
   const currentSpeechRef = useRef<AudioBufferSourceNode | null>(null);
-  const cleanupRef = useRef<() => void>();
+  // FIX: Initialize useRef with null to provide an initial value.
+  const cleanupRef = useRef<(() => void) | null>(null);
 
   
   const playOutputSpeech = useCallback(async (base64Audio: string) => {
@@ -103,7 +105,7 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
     }
   
     if (message.toolCall?.functionCalls) {
-        const session = await cleanupRef.current?.['sessionPromise'];
+        const session = await (cleanupRef.current as any)?.sessionPromise;
         for (const fc of message.toolCall.functionCalls) {
             // Conversational action for adding a note
             if (fc.name === 'addToDiary' && !fc.args.entry) {
@@ -118,13 +120,15 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
                 continue; // Skip sending tool response for now
             }
             
-            let result = "تم تنفيذ الإجراء بنجاح.";
+            // FIX: Explicitly type the result to help TypeScript's inference.
+            let result: string = "تم تنفيذ الإجراء بنجاح.";
             if (onFunctionCall) {
                 onFunctionCall(fc.name, fc.args);
             }
             // Handle internal functions
             if (fc.name === 'generateImage') {
-                toast.promise(generateImage(fc.args.prompt), {
+                // FIX: Cast prompt argument to string to satisfy function signature.
+                toast.promise(generateImage(fc.args.prompt as string), {
                     loading: '...جاري إنشاء الصورة',
                     success: (imageUrl) => {
                         setHistory(prev => [...prev, { role: 'model', text: `تفضل، هذه هي الصورة التي طلبتها.`, imageUrl }]);
@@ -133,7 +137,8 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
                     error: 'فشل إنشاء الصورة.',
                 });
             } else if (fc.name === 'analyzeCaloriesForVoice') {
-                result = await analyzeCaloriesForVoice(fc.args.foodName);
+                // FIX: Cast foodName argument to string to satisfy function signature.
+                result = await analyzeCaloriesForVoice(fc.args.foodName as string);
                 toast.success('✅ تم تحليل السعرات بنجاح.');
             }
             
@@ -149,7 +154,7 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
         const currentFollowUp = followUpForRef.current;
 
         if (currentFollowUp && finalInput) {
-            const session = await cleanupRef.current?.['sessionPromise'];
+            const session = await (cleanupRef.current as any)?.sessionPromise;
             if (currentFollowUp.name === 'addToDiary') {
                 const completedArgs = { ...currentFollowUp.args, entry: finalInput };
                 if (onFunctionCall) {
@@ -193,8 +198,9 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
     if (!isOpen) return;
 
     let isMounted = true;
-    let sessionPromise: Promise<LiveSession> | null = null;
-    let session: LiveSession | null = null;
+    // FIX: Use `any` for session types as `LiveSession` is not an exported member.
+    let sessionPromise: Promise<any> | null = null;
+    let session: any = null;
     let mediaStream: MediaStream | null = null;
     let inputAudioContext: AudioContext | null = null;
     let sourceNode: MediaStreamAudioSourceNode | null = null;
@@ -221,7 +227,7 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
         onClose(isSingleShotMode ? undefined : historyRef.current);
     };
     cleanupRef.current = cleanup;
-    cleanupRef.current['sessionPromise'] = sessionPromise;
+    (cleanupRef.current as any).sessionPromise = sessionPromise;
 
 
     const initialize = async () => {
@@ -251,15 +257,17 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
                 },
                 config: {
                     responseModalities: [Modality.AUDIO],
-                    speechConfig: { voiceConfig: { voiceName: 'Kore' } },
+                    // FIX: Corrected `voiceConfig` to use `prebuiltVoiceConfig` as per the API guidelines.
+                    speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } },
                     outputAudioTranscription: {},
                     inputAudioTranscription: {},
                     tools: [{ functionDeclarations: TOOLS }],
                     systemInstruction: systemInstruction,
                 },
             });
+            // FIX: Stored the session promise on the cleanup ref so it can be accessed inside callbacks.
+            (cleanupRef.current as any).sessionPromise = sessionPromise;
             session = await sessionPromise;
-            cleanupRef.current['sessionPromise'] = session;
 
 
             if (!isMounted) { cleanup(); return; }
@@ -295,7 +303,9 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
     initialize();
 
     return () => {
-        cleanup();
+        if (cleanupRef.current) {
+            cleanupRef.current();
+        }
     };
   }, [isOpen, isSingleShotMode, handleMessage, onClose]);
 
