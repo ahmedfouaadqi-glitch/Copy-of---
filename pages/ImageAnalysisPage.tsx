@@ -3,22 +3,24 @@ import { NavigationProps, AnalysisHistoryItem } from '../types';
 import { callGeminiApi } from '../services/geminiService';
 import { getAnalysisHistory, addAnalysisToHistory, clearAnalysisHistory, deleteAnalysisHistoryItem } from '../services/analysisHistoryService';
 import PageHeader from '../components/PageHeader';
-import { Camera, Sparkles, Leaf, Utensils, Pill, User, Trash2, X, ArchiveX, Eye } from 'lucide-react';
+import { Camera, Sparkles, Leaf, Utensils, Pill, User, Trash2, X, ArchiveX, Eye, QrCode } from 'lucide-react';
 import { FEATURES } from '../constants';
 import { useAnalysis } from '../context/AnalysisContext';
 import MediaInput from '../components/MediaInput';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import Feedback from '../components/Feedback';
+import SmartTip from '../components/SmartTip';
 
 const feature = FEATURES.find(f => f.pageType === 'imageAnalysis')!;
 
-type AnalysisType = 'plant_id' | 'food' | 'medication' | 'skin' | 'general';
+type AnalysisType = 'plant_id' | 'food' | 'medication' | 'skin' | 'general' | 'barcode';
 
 const ANALYSIS_OPTIONS: { type: AnalysisType; label: string; prompt: string; Icon: React.ElementType; color: string; targetPage?: 'calorieCounter' | 'pharmacy' | 'myPlants' }[] = [
     { type: 'plant_id', label: 'التعرف على النبات', prompt: "**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت خبير نباتات. تعرف على اسم هذا النبات من الصورة. اذكر فقط اسم النبات الشائع.", Icon: Leaf, color: 'green', targetPage: 'myPlants' },
     { type: 'food', label: 'تحليل الطعام', prompt: "**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت خبير تغذية. من خلال الصورة، صف الطعام الظاهر وقدم تقديرًا أوليًا لنوعه (مثلاً: وجبة غداء، فاكهة، حلوى).", Icon: Utensils, color: 'orange', targetPage: 'calorieCounter' },
     { type: 'medication', label: 'مسح الدواء', prompt: "**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت صيدلي. من خلال الصورة، حاول تحديد اسم الدواء أو نوعه. اذكر الاسم فقط.", Icon: Pill, color: 'blue', targetPage: 'pharmacy' },
     { type: 'skin', label: 'تحليل البشرة', prompt: "**مهمتك: الرد باللغة العربية الفصحى فقط وبلهجة خبير تجميل.** من خلال صورة البشرة هذه، قدم تحليلاً موجزاً لحالتها الظاهرة (مثال: جافة, دهنية) واقترح نصيحة عامة واحدة فقط للعناية بها. **تنبيه:** ابدأ ردك بعبارة: 'تحليل أولي بناءً على الصورة:'.", Icon: User, color: 'pink' },
+    { type: 'barcode', label: 'مسح باركود', prompt: "**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت نظام تعرف على المنتجات. إذا كانت الصورة تحتوي على باركود، استخرج الرقم منه. إذا لم تتمكن من قراءة الباركود، اذكر ذلك. إذا كانت الصورة تحتوي على اسم المنتج، فاذكر اسم المنتج.", Icon: QrCode, color: 'indigo' },
 ];
 
 const GENERAL_PROMPT = "**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت مساعد ذكي متعدد الاستخدامات. حلل الصور المقدمة وقدم وصفاً تفصيلياً لكل منها. إذا كانت هناك عدة صور, افصل بين تحليل كل صورة بـ '---'.";
@@ -135,7 +137,11 @@ const ImageAnalysisPage: React.FC<NavigationProps> = ({ navigateTo }) => {
         <div className="bg-gray-50 dark:bg-black min-h-screen">
             <PageHeader navigateTo={navigateTo} title="الكاميرا الذكية" Icon={Camera} color="blue" onBack={result || error || images.length > 0 ? resetState : undefined} />
             <main className="p-4">
-                <div className="bg-white dark:bg-black p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-800">
+                <SmartTip
+                    tipId="multi_image_tip"
+                    message="هل تعلم؟ يمكنك رفع عدة صور معًا ليقوم الذكاء الاصطناعي بتحليلها وتقديم وصف شامل لها جميعًا."
+                />
+                <div className="bg-white dark:bg-black p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-800 mt-4">
                     {images.length === 0 ? (
                         <MediaInput onImagesChange={handleImagesChange} />
                     ) : (
@@ -158,7 +164,7 @@ const ImageAnalysisPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                             {images.length > 1 ? (
                                 <p className="text-sm p-3 bg-gray-100 dark:bg-black rounded-md text-gray-600 dark:text-gray-300">سيتم إجراء تحليل عام لوجود عدة صور.</p>
                             ) : (
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                     {ANALYSIS_OPTIONS.map(opt => (
                                         <button key={opt.type} onClick={() => setAnalysisType(opt.type)} className={`p-3 rounded-lg border-2 transition text-center ${analysisType === opt.type ? `border-${opt.color}-500 bg-${opt.color}-50 dark:bg-black` : 'border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-black hover:border-gray-400'}`}>
                                             <opt.Icon className={`w-6 h-6 mx-auto mb-1 text-${opt.color}-500`} />
@@ -167,7 +173,7 @@ const ImageAnalysisPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                                     ))}
                                 </div>
                             )}
-                            <button onClick={handleAnalysis} disabled={isLoading || (images.length === 1 && !analysisType)} className="w-full mt-4 p-3 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 disabled:bg-gray-400 dark:disabled:bg-gray-700 transition">
+                            <button onClick={handleAnalysis} disabled={isLoading || (images.length === 1 && !analysisType)} className="w-full mt-4 p-3 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 disabled:bg-gray-400 dark:disabled:bg-gray-700 transition active:scale-95">
                                 {isLoading ? '...جاري التحليل' : 'ابدأ التحليل الذكي'}
                             </button>
                         </div>

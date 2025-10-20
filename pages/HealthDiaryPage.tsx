@@ -1,15 +1,18 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { NavigationProps, DiaryEntry, QuickAddAction } from '../types';
 import { getDiaryEntries, deleteDiaryEntry, addDiaryEntry } from '../services/diaryService';
 import { getQuickAddActions, saveQuickAddActions, performQuickAdd } from '../services/quickAddService';
+import { analyzeDiaryEntries } from '../services/geminiService';
 import PageHeader from '../components/PageHeader';
 import { FEATURES } from '../constants';
-import { NotebookText, Trash2, Calendar, ChevronLeft, ChevronRight, ArchiveX, Plus, Settings, X, Save } from 'lucide-react';
+import { NotebookText, Trash2, Calendar, ChevronLeft, ChevronRight, ArchiveX, Plus, Settings, X, Save, BrainCircuit, Sparkles } from 'lucide-react';
+import MarkdownRenderer from '../components/MarkdownRenderer';
+import { playSound } from '../services/soundService';
 
 const feature = FEATURES.find(f => f.pageType === 'healthDiary')!;
 
 const DiaryEntryCard: React.FC<{ entry: DiaryEntry; onDelete: (id: string) => void }> = ({ entry, onDelete }) => (
-    <div className="bg-white dark:bg-black p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 flex items-start gap-4">
+    <div className="bg-white dark:bg-black p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 flex items-start gap-4 transition-transform duration-200 hover:scale-[1.02]">
         <div className="text-2xl pt-1">{entry.icon}</div>
         <div className="flex-1">
             <h3 className="font-bold text-gray-800 dark:text-gray-200">{entry.title}</h3>
@@ -35,11 +38,17 @@ const HealthDiaryPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const [noteText, setNoteText] = useState('');
     const [quickAddActions, setQuickAddActions] = useState<QuickAddAction[]>([]);
     const [isManagingQuickAdd, setIsManagingQuickAdd] = useState(false);
+    const [weeklyAnalysis, setWeeklyAnalysis] = useState<{ result: string, error: string | null }>({ result: '', error: null });
+    const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
 
-    useEffect(() => {
+    const refreshEntries = useCallback(() => {
         const dateWithoutTime = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
         setEntries(getDiaryEntries(dateWithoutTime));
     }, [selectedDate]);
+
+    useEffect(() => {
+        refreshEntries();
+    }, [selectedDate, refreshEntries]);
     
     useEffect(() => {
         setQuickAddActions(getQuickAddActions());
@@ -48,30 +57,51 @@ const HealthDiaryPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const handleDelete = (id: string) => {
         if (window.confirm('هل أنت متأكد من حذف هذا الإدخال؟')) {
             const dateWithoutTime = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
-            const updatedEntries = deleteDiaryEntry(dateWithoutTime, id);
-            setEntries(updatedEntries);
+            deleteDiaryEntry(dateWithoutTime, id);
+            playSound('tap');
+            refreshEntries();
+        }
+    };
+    
+    const handleAnalyzeWeek = async () => {
+        setIsAnalysisLoading(true);
+        setWeeklyAnalysis({ result: '', error: null });
+        playSound('tap');
+        try {
+            const result = await analyzeDiaryEntries();
+            setWeeklyAnalysis({ result, error: null });
+            playSound('notification');
+        } catch(e) {
+            setWeeklyAnalysis({ result: '', error: e instanceof Error ? e.message : 'فشل تحليل البيانات' });
+            playSound('error');
+        } finally {
+            setIsAnalysisLoading(false);
         }
     };
 
     const handleSaveNote = () => {
         if (noteText.trim()) {
-            addDiaryEntry(new Date(), { type: 'note', icon: '📝', title: 'ملاحظة', details: noteText.trim() });
+            addDiaryEntry(selectedDate, { type: 'note', icon: '📝', title: 'ملاحظة', details: noteText.trim() });
+            playSound('success');
             setNoteText('');
             setIsNoteInputVisible(false);
-            setEntries(getDiaryEntries(new Date())); // Refresh entries
+            refreshEntries();
         }
     };
     
     const handleQuickAdd = (action: QuickAddAction) => {
-        performQuickAdd(action);
-        setEntries(getDiaryEntries(new Date())); // Refresh entries
+        performQuickAdd(action, selectedDate);
+        playSound('success');
+        refreshEntries();
     };
     
     const handleManageQuickAdd = () => {
+        playSound('tap');
         setIsManagingQuickAdd(true);
     };
 
     const changeDate = (amount: number) => {
+        playSound('tap');
         setSelectedDate(prevDate => {
             const newDate = new Date(prevDate);
             newDate.setDate(newDate.getDate() + amount);
@@ -102,12 +132,12 @@ const HealthDiaryPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                     </div>
                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                         {quickAddActions.map(action => (
-                            <button key={action.id} onClick={() => handleQuickAdd(action)} className="flex flex-col items-center p-2 bg-gray-100 dark:bg-black border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-900 transition text-center">
+                            <button key={action.id} onClick={() => handleQuickAdd(action)} className="flex flex-col items-center p-2 bg-gray-100 dark:bg-black border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-900 transition text-center active:scale-90">
                                 <span className="text-2xl">{action.icon}</span>
                                 <span className="text-xs mt-1 text-gray-600 dark:text-gray-300">{action.label}</span>
                             </button>
                         ))}
-                        <button onClick={() => setIsNoteInputVisible(true)} className="flex flex-col items-center p-2 bg-gray-100 dark:bg-black border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-900 transition text-center">
+                        <button onClick={() => setIsNoteInputVisible(true)} className="flex flex-col items-center p-2 bg-gray-100 dark:bg-black border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-900 transition text-center active:scale-90">
                             <span className="text-2xl">📝</span>
                             <span className="text-xs mt-1 text-gray-600 dark:text-gray-300">إضافة ملاحظة</span>
                         </button>
@@ -128,9 +158,31 @@ const HealthDiaryPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                         </div>
                      )}
                 </div>
+                
+                 <div className="bg-white dark:bg-black p-4 rounded-lg shadow-md mb-6 border border-gray-200 dark:border-gray-800">
+                    <h3 className="font-bold text-gray-700 dark:text-gray-200 mb-2">مستشارك الاستباقي</h3>
+                    <button onClick={handleAnalyzeWeek} disabled={isAnalysisLoading} className="w-full p-3 bg-indigo-500 text-white rounded-lg flex items-center justify-center gap-2 hover:bg-indigo-600 transition disabled:bg-indigo-400 active:scale-95">
+                        <BrainCircuit size={20} />
+                        {isAnalysisLoading ? '...جاري التحليل' : 'تحليل الأسبوع وتقديم النصائح'}
+                    </button>
+                     {isAnalysisLoading && (
+                        <div className="text-center p-4 mt-2">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-200 mx-auto"></div>
+                            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">يقوم الذكاء الاصطناعي بمراجعة بياناتك...</p>
+                        </div>
+                     )}
+                     {weeklyAnalysis.error && <p className="text-red-500 text-sm mt-2">{weeklyAnalysis.error}</p>}
+                     {weeklyAnalysis.result && (
+                        <div className="mt-4 p-3 bg-indigo-50 dark:bg-black rounded-lg border border-indigo-200 dark:border-indigo-500/50">
+                            <h4 className="font-bold text-indigo-800 dark:text-indigo-300 mb-2 flex items-center gap-2"><Sparkles size={18}/> رؤى أسبوعية</h4>
+                            <MarkdownRenderer content={weeklyAnalysis.result} />
+                        </div>
+                     )}
+                </div>
+
 
                 <div className="bg-white dark:bg-black p-4 rounded-lg shadow-md mb-6 border border-gray-200 dark:border-gray-800 flex items-center justify-between">
-                    <button onClick={() => changeDate(-1)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors">
+                    <button onClick={() => changeDate(1)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors">
                         <ChevronRight className="text-gray-600 dark:text-gray-300" />
                     </button>
                     <div className="text-center">
@@ -139,7 +191,7 @@ const HealthDiaryPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                            {formattedDate}
                         </h2>
                     </div>
-                    <button onClick={() => changeDate(1)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors">
+                    <button onClick={() => changeDate(-1)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors">
                         <ChevronLeft className="text-gray-600 dark:text-gray-300" />
                     </button>
                 </div>
@@ -155,7 +207,7 @@ const HealthDiaryPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                          <ArchiveX size={48} className="mx-auto text-gray-400 dark:text-gray-600 mb-4" />
                         <h3 className="font-bold text-lg text-gray-700 dark:text-gray-200">لا توجد إدخالات لهذا اليوم</h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            الإدخالات التي تضيفها من الأقسام الأخرى ستظهر هنا.
+                            الإدخالات التي تضيفها ستظهر هنا.
                         </p>
                     </div>
                 )}

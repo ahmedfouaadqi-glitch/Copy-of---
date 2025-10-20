@@ -1,12 +1,13 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { NavigationProps, GroundingChunk } from '../types';
 import { callGeminiSearchApi } from '../services/geminiService';
 import PageHeader from '../components/PageHeader';
 import { FEATURES } from '../constants';
-import { Search, Sparkles, Mic, Link } from 'lucide-react';
+import { Search, Sparkles, Link } from 'lucide-react';
 import MarkdownRenderer from '../components/MarkdownRenderer';
-import VoiceConversationModal from '../components/VoiceConversationModal';
+
 
 const feature = FEATURES.find(f => f.pageType === 'globalSearch')!;
 
@@ -16,7 +17,7 @@ const GlobalSearchPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const [groundingChunks, setGroundingChunks] = useState<GroundingChunk[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+    
 
     const handleSearch = async (searchText = input) => {
         if (!searchText.trim()) return;
@@ -61,30 +62,12 @@ const GlobalSearchPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                             placeholder="ابحث عن أي شيء..."
                             className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-black text-gray-800 dark:text-gray-200"
                         />
-                        <button
-                            onClick={() => setIsVoiceModalOpen(true)}
-                            className={`p-3 rounded-md transition bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-200`}
-                            aria-label="إجراء محادثة صوتية"
-                        >
-                            <Mic size={20} />
-                        </button>
                         <button onClick={() => handleSearch()} disabled={isLoading} className="p-3 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 disabled:bg-gray-400">
                             <Search size={20} />
                         </button>
                     </div>
                 </div>
-                 {isVoiceModalOpen && (
-                    // FIX: Remove invalid `onFunctionCall` prop; this logic is now handled by the modal.
-                    <VoiceConversationModal
-                        isOpen={isVoiceModalOpen}
-                        onClose={() => setIsVoiceModalOpen(false)}
-                        onSubmit={(transcript) => {
-                            setInput(transcript);
-                            if (transcript) handleSearch(transcript);
-                        }}
-                    />
-                )}
-
+                
                 {isLoading && (
                     <div className="text-center p-4 mt-6">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto"></div>

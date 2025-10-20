@@ -2,13 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { NavigationProps, Feature } from '../types';
 import { callGeminiApi } from '../services/geminiService';
 import PageHeader from '../components/PageHeader';
-import { Sparkles, Mic } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import Feedback from '../components/Feedback';
 import { PERSONAL_ADVISOR_BEAUTY_SUB_FEATURES, DECORATIONS_SUB_FEATURES, SCHEDULE_SUB_FEATURES } from '../constants';
 import { useAnalysis } from '../context/AnalysisContext';
 import MediaInput from '../components/MediaInput';
-import VoiceConversationModal from '../components/VoiceConversationModal';
+import FollowUpChat from '../components/FollowUpChat';
+
 
 interface SmartHealthPageProps extends NavigationProps {
   feature: Feature;
@@ -31,7 +32,8 @@ const SmartHealthPage: React.FC<SmartHealthPageProps> = ({ feature, navigateTo }
   const [error, setError] = useState<string | null>(null);
   const [responseId, setResponseId] = useState<string | null>(null);
   const [localImage, setLocalImage] = useState<string | null>(null);
-  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+  const [initialUserQuery, setInitialUserQuery] = useState('');
+  
   const { analysisData, setAnalysisData } = useAnalysis();
 
   const categories = useMemo(() => {
@@ -50,8 +52,6 @@ const SmartHealthPage: React.FC<SmartHealthPageProps> = ({ feature, navigateTo }
   useEffect(() => {
     if (analysisData?.analysisType === 'skin' && feature.pageType === 'beauty') {
         const skinCareBranch = categories.find(c => c.id === 'skincare');
-        // FIX: The type of `skinCareBranch` is inferred as a union where not all members are guaranteed to have `subCategories`.
-        // This check uses the `in` operator as a type guard to ensure `subCategories` exists and can be safely accessed.
         if (skinCareBranch && 'subCategories' in skinCareBranch && skinCareBranch.subCategories) {
             const skinType = analysisData.analysisDetails?.toLowerCase();
             let targetCategory;
@@ -80,12 +80,14 @@ const SmartHealthPage: React.FC<SmartHealthPageProps> = ({ feature, navigateTo }
     setError(null);
     setResponseId(null);
     setLocalImage(null);
+    setInitialUserQuery('');
   };
 
   const handleBack = () => {
     if (result || error) {
       setResult('');
       setError(null);
+      setInitialUserQuery('');
     } else if (navigationStack.length > 0) {
       setNavigationStack(prev => prev.slice(0, -1));
     } else {
@@ -113,6 +115,7 @@ const SmartHealthPage: React.FC<SmartHealthPageProps> = ({ feature, navigateTo }
       }
       
       let fullPrompt = `بناءً على الاختيارات التالية: ${fullStack.map(s => s.name).join(' -> ')}. ${prompt}`;
+      setInitialUserQuery(fullPrompt);
       
       if (category.id === 'product_analysis' && analysisData?.analysisDetails) {
           fullPrompt += ` مع الأخذ في الاعتبار أن نوع بشرة المستخدم هو ${analysisData.analysisDetails}.`;
@@ -139,7 +142,7 @@ const SmartHealthPage: React.FC<SmartHealthPageProps> = ({ feature, navigateTo }
       }
     }
   };
-
+  
   const requiresImageForSomeSubcategories = useMemo(() => 
     (currentCategories || []).some(cat => cat.requiresImage), 
   [currentCategories]);
@@ -167,31 +170,24 @@ const SmartHealthPage: React.FC<SmartHealthPageProps> = ({ feature, navigateTo }
                 <h3 className="font-bold text-gray-700 dark:text-gray-300">
                     {navigationStack.length > 0 ? navigationStack[navigationStack.length-1].name : 'اختر الخدمة:'}
                 </h3>
-                <button
-                    onClick={() => setIsVoiceModalOpen(true)}
-                    className={`p-2 rounded-full transition text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-800`}
-                    aria-label="إجراء محادثة صوتية"
-                >
-                    <Mic size={18} />
-                </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-              {currentCategories?.map(category => (
-                <button
-                  key={category.id}
-                  onClick={() => handleCategorySelect(category)}
-                  className={`p-4 rounded-lg border-2 transition-all duration-200 text-right flex items-center gap-4 bg-${feature.color}-50/50 dark:bg-black border-${feature.color}-500/30 hover:border-${feature.color}-500 hover:bg-${feature.color}-50/80 dark:hover:bg-${feature.color}-500/10`}
-                >
-                  <span className="text-2xl">{category.icon}</span>
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">{category.name}</span>
-                </button>
-              ))}
+              {currentCategories?.map(category => {
+                const isDisabled = !!(category.requiresImage && !localImage);
+                return (
+                    <button
+                      key={category.id}
+                      onClick={() => handleCategorySelect(category)}
+                      disabled={isDisabled}
+                      className={`p-4 rounded-lg border-2 transition-all duration-200 text-right flex items-center gap-4 bg-${feature.color}-50/50 dark:bg-black border-${feature.color}-500/30 ${isDisabled ? 'opacity-50 cursor-not-allowed' : `hover:border-${feature.color}-500 hover:bg-${feature.color}-50/80 dark:hover:bg-${feature.color}-500/10 active:scale-95`}`}
+                    >
+                      <span className="text-2xl">{category.icon}</span>
+                      <span className="font-semibold text-gray-800 dark:text-gray-200">{category.name}</span>
+                    </button>
+                )
+              })}
             </div>
           </div>
-        )}
-
-        {isVoiceModalOpen && (
-            <VoiceConversationModal isOpen={isVoiceModalOpen} onClose={() => setIsVoiceModalOpen(false)} />
         )}
         
         {isLoading && (
@@ -214,6 +210,12 @@ const SmartHealthPage: React.FC<SmartHealthPageProps> = ({ feature, navigateTo }
             </h3>
             <MarkdownRenderer content={result} />
             {responseId && <Feedback responseId={responseId} />}
+            <FollowUpChat
+                initialUserPrompt={initialUserQuery}
+                initialModelContent={result}
+                context={null}
+                systemInstruction={`أنت خبير في ${feature.title}. أجب عن أسئلة المستخدم المتابعة بوضوح.`}
+            />
           </div>
         )}
       </main>

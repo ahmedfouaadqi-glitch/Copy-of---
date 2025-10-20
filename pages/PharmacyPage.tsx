@@ -1,16 +1,14 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { NavigationProps } from '../types';
 import { callGeminiApi } from '../services/geminiService';
 import { addDiaryEntry } from '../services/diaryService';
 import PageHeader from '../components/PageHeader';
-import { Pill, AlertTriangle, Sparkles, Search, X, CheckCircle, Mic } from 'lucide-react';
+import { Pill, AlertTriangle, Sparkles, Search, X, CheckCircle } from 'lucide-react';
 import { FEATURES } from '../constants';
 import Feedback from '../components/Feedback';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { useAnalysis } from '../context/AnalysisContext';
 import FollowUpChat from '../components/FollowUpChat';
-import VoiceConversationModal from '../components/VoiceConversationModal';
 import MediaInput from '../components/MediaInput'; // Import the new component
 
 const feature = FEATURES.find(f => f.pageType === 'pharmacy')!;
@@ -25,7 +23,7 @@ const PharmacyPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const { analysisData, setAnalysisData } = useAnalysis();
     const contextApplied = useRef(false);
     const [isAddedToDiary, setIsAddedToDiary] = useState(false);
-    const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+    
     const [initialUserQuery, setInitialUserQuery] = useState('');
 
 
@@ -80,7 +78,6 @@ const PharmacyPage: React.FC<NavigationProps> = ({ navigateTo }) => {
         **مهم جداً:** لا تقم بتضمين أي ملاحظات حول استشارة الطبيب في ردك, حيث سيتم عرضها بشكل منفصل في واجهة المستخدم.`;
 
         try {
-            // FIX: The `callGeminiApi` function expects an array of images. The single `image` object is now wrapped in an array to match the expected type.
             const apiResult = await callGeminiApi(prompt, image ? [image] : undefined);
             setResult(apiResult);
             setResponseId(`pharmacy-${Date.now()}`);
@@ -161,33 +158,19 @@ const PharmacyPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                             value={input}
                             onChange={(e) => { setInput(e.target.value); if(localImage) setLocalImage(null); }}
                             placeholder="أو اكتب اسم الدواء هنا..."
-                            className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-black text-gray-800 dark:text-gray-200 pr-10"
+                            className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-black text-gray-800 dark:text-gray-200"
                         />
-                         <button
-                            onClick={() => setIsVoiceModalOpen(true)}
-                            className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full transition text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-800`}
-                            aria-label="إجراء محادثة صوتية"
-                        >
-                            <Mic size={18} />
-                        </button>
                     </div>
 
                     <button
                         onClick={handleSubmit}
                         disabled={isLoading || (!input.trim() && !localImage)}
-                        className={`w-full p-3 rounded-md text-white font-bold transition flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 dark:disabled:bg-gray-600`}
+                        className={`w-full p-3 rounded-md text-white font-bold transition flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 dark:disabled:bg-gray-600 active:scale-95`}
                     >
                         <Search size={20} />
                         {localImage ? 'تحليل الصورة' : 'بحث'}
                     </button>
                 </div>
-                 {isVoiceModalOpen && (
-                    <VoiceConversationModal
-                        isOpen={isVoiceModalOpen}
-                        onClose={() => setIsVoiceModalOpen(false)}
-                        onSubmit={setInput}
-                    />
-                )}
                 
                 { (result || error || isLoading) && (
                     <div className="mt-6">

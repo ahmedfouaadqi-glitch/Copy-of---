@@ -1,10 +1,15 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { NavigationProps } from '../types';
 import { FEATURES } from '../constants';
 import FeatureCard from '../components/FeatureCard';
 import { HeartPulse } from 'lucide-react';
+import { useFeatureUsage } from '../hooks/useFeatureUsage';
 
 const HomePage: React.FC<NavigationProps> = ({ navigateTo }) => {
+  const { getUsageSortedFeatures } = useFeatureUsage();
+
+  const sortedFeatures = useMemo(() => getUsageSortedFeatures(FEATURES), [getUsageSortedFeatures]);
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black flex flex-col">
       <header className="p-4 flex justify-between items-center bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800 shadow-sm sticky top-0 z-10">
@@ -16,7 +21,7 @@ const HomePage: React.FC<NavigationProps> = ({ navigateTo }) => {
       <main className="p-4 flex-grow">
         <p className="text-center text-gray-600 dark:text-gray-400 mb-6">تطبيق الحياة</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
-          {FEATURES.map(feature => (
+          {sortedFeatures.map(feature => (
             <FeatureCard key={feature.pageType} feature={feature} navigateTo={navigateTo} />
           ))}
         </div>

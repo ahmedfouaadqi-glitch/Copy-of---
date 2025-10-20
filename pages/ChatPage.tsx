@@ -3,29 +3,24 @@ import { NavigationProps, ChatMessage } from '../types';
 import { callGeminiChatApi, generateImage } from '../services/geminiService';
 import PageHeader from '../components/PageHeader';
 import { FEATURES } from '../constants';
-import { Send, Mic, Paperclip, X } from 'lucide-react';
+import { Send, Paperclip, X } from 'lucide-react';
 import MarkdownRenderer from '../components/MarkdownRenderer';
-import VoiceConversationModal from '../components/VoiceConversationModal';
-import { useAnalysis } from '../context/AnalysisContext';
+import SmartTip from '../components/SmartTip';
+import { playSound } from '../services/soundService';
 
 const feature = FEATURES.find(f => f.pageType === 'chat')!;
 const SYSTEM_INSTRUCTION = "أنت 'عقل الروح التقنية'، مساعد ذكي ومتعدد الاستخدامات في تطبيق صحتك/كي. مهمتك هي الإجابة على استفسارات المستخدمين بوضوح ودقة. كن ودوداً ومتعاوناً وشخصياً.";
-
-// FIX: Define a type for the conversation history items from the modal.
-type HistoryItem = { role: 'user' | 'model'; text: string; imageUrl?: string };
 
 const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
-  const { analysisData, setAnalysisData } = useAnalysis();
+  
   const chatEndRef = useRef<HTMLDivElement>(null);
   
   // Greeting logic
   useEffect(() => {
-    // FIX: Add type assertion to handle potential null from localStorage.
     const storedMessages = JSON.parse(localStorage.getItem('chatHistory') || '[]') as ChatMessage[];
     if (storedMessages.length === 0) {
       const getGreeting = () => {
@@ -58,6 +53,7 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     setInput('');
     setImage(null);
     setIsLoading(true);
+    playSound('tap');
 
     try {
         const imageCommandRegex = /^(ارسم|صمم|تخيل|انشئ)\s/i;
@@ -66,15 +62,18 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
             const imageUrl = await generateImage(prompt);
             const modelMessage: ChatMessage = { role: 'model', content: `تفضل، هذه هي الصورة التي طلبتها بناءً على وصف: "${prompt}"`, imageUrl };
             setMessages(prev => [...prev, modelMessage]);
+            playSound('notification');
         } else {
             const response = await callGeminiChatApi(newMessages, SYSTEM_INSTRUCTION);
             const modelMessage: ChatMessage = { role: 'model', content: response };
             setMessages(prev => [...prev, modelMessage]);
+            playSound('notification');
         }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "حدث خطأ غير متوقع.";
       const modelMessage: ChatMessage = { role: 'model', content: `**عذراً، حدث خطأ:**\n\n${errorMessage}` };
       setMessages(prev => [...prev, modelMessage]);
+      playSound('error');
     } finally {
       setIsLoading(false);
     }
@@ -98,22 +97,15 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
       }
   };
   
-  const handleVoiceModalClose = (history: HistoryItem[]) => {
-      setIsVoiceModalOpen(false);
-      // Append the voice conversation history to the main chat
-      const newChatMessages: ChatMessage[] = history.map(item => ({
-          role: item.role,
-          content: item.text,
-          imageUrl: item.imageUrl,
-      }));
-      setMessages(prev => [...prev, ...newChatMessages]);
-  };
-  
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-black">
       <PageHeader navigateTo={navigateTo} title={feature.title} Icon={feature.Icon} color={feature.color} />
       
       <main className="flex-1 overflow-y-auto p-4 space-y-4">
+        <SmartTip
+            tipId="image_generation_tip"
+            message="هل تعلم؟ يمكنك أن تطلب مني رسم أي شيء يخطر ببالك! فقط ابدأ رسالتك بكلمة 'ارسم' أو 'صمم'."
+        />
         {messages.map((msg, index) => (
           <div key={index} className={`flex items-end gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-md lg:max-w-xl p-3 rounded-2xl shadow-sm ${msg.role === 'user' ? 'bg-blue-500 text-white rounded-br-none' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-bl-none'}`}>
@@ -146,7 +138,6 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                 </div>
             )}
             <div className="flex items-center gap-2">
-                <button onClick={() => setIsVoiceModalOpen(true)} className="p-3 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-lg transition-colors"><Mic size={20} /></button>
                 <label className="p-3 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-lg transition-colors cursor-pointer">
                     <Paperclip size={20} />
                     <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload}/>
@@ -169,12 +160,6 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
             </div>
         </div>
       </footer>
-       {isVoiceModalOpen && (
-            <VoiceConversationModal
-                isOpen={isVoiceModalOpen}
-                onClose={handleVoiceModalClose}
-            />
-        )}
     </div>
   );
 };

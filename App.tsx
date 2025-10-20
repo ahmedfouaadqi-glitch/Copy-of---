@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Page } from './types';
 import HomePage from './pages/HomePage';
@@ -15,16 +14,33 @@ import { ThemeProvider } from './context/ThemeContext';
 import { AnalysisProvider } from './context/AnalysisContext';
 import SplashScreen from './components/SplashScreen';
 import { FEATURES } from './constants';
+import { Toaster } from 'react-hot-toast';
+import BottomNavBar from './components/BottomNavBar';
+import OnboardingGuide from './components/OnboardingGuide';
+import { playSound } from './services/soundService';
 
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>({ type: 'home' });
   const [isLoading, setIsLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1500); // Simulate loading
+    const timer = setTimeout(() => {
+        setIsLoading(false);
+        playSound('start'); // Play start sound
+        const hasOnboarded = localStorage.getItem('hasOnboarded');
+        if (!hasOnboarded) {
+            setShowOnboarding(true);
+        }
+    }, 1500); // Simulate loading
     return () => clearTimeout(timer);
   }, []);
+  
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('hasOnboarded', 'true');
+    setShowOnboarding(false);
+  };
 
   const navigateTo = (page: Page) => {
     setCurrentPage(page);
@@ -72,9 +88,14 @@ const App: React.FC = () => {
   return (
     <ThemeProvider>
       <AnalysisProvider>
-        <div className="bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 min-h-screen">
-          {renderPage()}
+        <Toaster position="top-center" reverseOrder={false} />
+        <div className="bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 min-h-screen font-sans">
+            <div className="pb-20"> {/* Padding bottom to prevent content from being hidden by the nav bar */}
+                {renderPage()}
+            </div>
+            <BottomNavBar currentPage={currentPage} navigateTo={navigateTo} />
         </div>
+        {showOnboarding && <OnboardingGuide onComplete={handleOnboardingComplete} />}
       </AnalysisProvider>
     </ThemeProvider>
   );

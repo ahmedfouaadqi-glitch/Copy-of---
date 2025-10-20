@@ -1,6 +1,8 @@
 import React from 'react';
 import { Feature, NavigationProps } from '../types';
 import { ArrowLeft } from 'lucide-react';
+import { useFeatureUsage } from '../hooks/useFeatureUsage';
+import { playSound } from '../services/soundService';
 
 interface FeatureCardProps {
   feature: Feature;
@@ -22,11 +24,18 @@ const colorClasses: { [key: string]: { bg: string, text: string, border: string,
 const FeatureCard: React.FC<FeatureCardProps> = ({ feature, navigateTo }) => {
   const { title, description, Icon, color, page } = feature;
   const colors = colorClasses[color] || colorClasses.teal;
+  const { trackFeatureUsage } = useFeatureUsage();
+
+  const handleClick = () => {
+    playSound('tap');
+    trackFeatureUsage(feature.pageType);
+    navigateTo(page);
+  };
 
   return (
     <div
-      onClick={() => navigateTo(page)}
-      className={`w-full p-4 rounded-xl shadow-md cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${colors.bg} ${colors.darkBg} border ${colors.border} ${colors.darkBorder}`}
+      onClick={handleClick}
+      className={`w-full p-4 rounded-xl shadow-md cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 active:scale-95 ${colors.bg} ${colors.darkBg} border ${colors.border} ${colors.darkBorder}`}
     >
       <div className="flex items-center space-x-4 rtl:space-x-reverse">
         <div className={`p-3 rounded-lg ${colors.iconBg}`}>

@@ -1,17 +1,16 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { NavigationProps } from '../types';
 import { callGeminiApi } from '../services/geminiService';
 import { addDiaryEntry } from '../services/diaryService';
 import PageHeader from '../components/PageHeader';
-import { UtensilsCrossed, Sparkles, ChefHat, CheckCircle, Mic } from 'lucide-react';
+import { UtensilsCrossed, Sparkles, ChefHat, CheckCircle, Info, X } from 'lucide-react';
 import { FEATURES } from '../constants';
 import Feedback from '../components/Feedback';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { useAnalysis } from '../context/AnalysisContext';
 import FollowUpChat from '../components/FollowUpChat';
 import MediaInput from '../components/MediaInput';
-import VoiceConversationModal from '../components/VoiceConversationModal';
+
 
 const feature = FEATURES.find(f => f.pageType === 'calorieCounter')!;
 
@@ -28,16 +27,17 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const [isAddedToDiary, setIsAddedToDiary] = useState(false);
     const { analysisData, setAnalysisData } = useAnalysis();
     const contextApplied = useRef(false);
-    const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+    
     const [initialUserQuery, setInitialUserQuery] = useState('');
+    const [showContextBanner, setShowContextBanner] = useState(false);
+
 
     useEffect(() => {
         if (analysisData && !contextApplied.current) {
             if (analysisData.analysisType === 'food' && analysisData.images && analysisData.images.length > 0) {
                 setLocalImage(analysisData.images[0]);
-            }
-            if (analysisData.text) {
-                setInput(analysisData.text);
+                 setInput(analysisData.analysisDetails || ''); // Use details for better context
+                 setShowContextBanner(true);
             }
             setMode('calories');
             contextApplied.current = true;
@@ -49,6 +49,7 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
             setInput('');
             setLocalImage(null);
             setAnalysisData(null);
+            setShowContextBanner(false);
         }
         setResult('');
         setError(null);
@@ -64,6 +65,13 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
             navigateTo({ type: 'home' });
         }
     };
+    
+    const handleClearContext = () => {
+        setAnalysisData(null);
+        setShowContextBanner(false);
+        setInput('');
+        setLocalImage(null);
+    }
 
     const handleAddToDiary = () => {
         const title = input || (mode === 'calories' ? "وجبة من صورة" : "وصفة جديدة");
@@ -96,7 +104,7 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
             } else {
                 prompt += `بناءً على الوصف التالي "${input}", `;
             }
-            prompt += `قدم تقديراً مفصلاً للسعرات الحرارية والمكونات الرئيسية (بروتين، كربوهيدرات، دهون). قدم نصيحة صحية سريعة حول هذه الوجبة.`;
+            prompt += `قدم تقديراً مفصلاً للسعرات الحرارية والمكونات الرئيسية (بروتين، كربوهhidرات، دهون). قدم نصيحة صحية سريعة حول هذه الوجبة.`;
         } else { // recipe mode
             prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت طاهٍ مبدع. ابتكر وصفة طعام صحية ولذيذة باستخدام المكونات التالية فقط: "${input}". قدم الوصفة بتنسيق واضح يشمل:
             1.  **اسم الوصفة المقترح**
@@ -111,7 +119,6 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                 data: localImage.split(',')[1]
             } : undefined;
 
-            // FIX: The `callGeminiApi` function expects an array of images. The `imagePayload` object is now wrapped in an array to match the expected type.
             const apiResult = await callGeminiApi(prompt, imagePayload ? [imagePayload] : undefined);
             setResult(apiResult);
             setResponseId(`chef-${Date.now()}`);
@@ -127,6 +134,15 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
         <div className="bg-gray-50 dark:bg-black min-h-screen">
             <PageHeader onBack={handleBack} navigateTo={navigateTo} title="مستشار الطهي" Icon={UtensilsCrossed} color="orange" />
             <main className="p-4">
+                 {showContextBanner && (
+                    <div className="bg-teal-50 dark:bg-black border-l-4 border-teal-500 text-teal-800 dark:text-teal-300 p-3 mb-4 rounded-r-lg flex items-center gap-3 relative text-sm">
+                        <Info size={20} className="flex-shrink-0" />
+                        <p>تم جلب السياق من الكاميرا الذكية. هل تريد تحليل السعرات؟</p>
+                         <button onClick={handleClearContext} className="absolute top-2 left-2 p-1 rounded-full hover:bg-teal-200 dark:hover:bg-gray-900">
+                            <X size={16} />
+                        </button>
+                    </div>
+                 )}
                 <div className="bg-white dark:bg-black p-4 rounded-lg shadow-md mb-6 border border-gray-200 dark:border-gray-800">
                     <div className="flex border border-gray-200 dark:border-gray-700 rounded-lg p-1 mb-4 bg-gray-100 dark:bg-black">
                         <button onClick={() => setMode('calories')} className={`flex-1 p-2 rounded-md text-sm font-semibold transition ${mode === 'calories' ? 'bg-orange-500 text-white shadow' : 'text-gray-600 dark:text-gray-300'}`}>تقدير السعرات</button>
@@ -134,7 +150,7 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                     </div>
 
                     {mode === 'calories' && (
-                        <MediaInput image={localImage} onImageChange={(img) => setLocalImage(img)} onClearImage={() => { setLocalImage(null); setAnalysisData(null); }} promptText="ارفع صورة لوجبتك" />
+                        <MediaInput image={localImage} onImageChange={(img) => setLocalImage(img)} onClearImage={() => { setLocalImage(null); handleClearContext(); }} promptText="ارفع صورة لوجبتك" />
                     )}
 
                     <div className="relative mt-3">
@@ -142,33 +158,20 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             placeholder={mode === 'calories' ? 'صف وجبتك (اختياري مع الصورة)...' : 'اكتب المكونات المتوفرة لديك...'}
-                            className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-black text-gray-800 dark:text-gray-200 pr-10"
+                            className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-black text-gray-800 dark:text-gray-200"
                             rows={3}
                         />
-                        <button
-                            onClick={() => setIsVoiceModalOpen(true)}
-                            className={`absolute left-2 top-2 p-2 rounded-full transition text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-800`}
-                            aria-label="إجراء محادثة صوتية"
-                        >
-                            <Mic size={18} />
-                        </button>
                     </div>
                     <button
                         onClick={handleSubmit}
                         disabled={isLoading || (!input.trim() && !localImage)}
-                        className={`w-full p-3 mt-2 rounded-md text-white font-bold transition flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 dark:disabled:bg-gray-600`}
+                        className={`w-full p-3 mt-2 rounded-md text-white font-bold transition flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 dark:disabled:bg-gray-600 active:scale-95`}
                     >
                         {mode === 'calories' ? <UtensilsCrossed size={20} /> : <ChefHat size={20} />}
                         {mode === 'calories' ? 'تحليل الوجبة' : 'ابتكر لي وصفة'}
                     </button>
                 </div>
-                 {isVoiceModalOpen && (
-                    <VoiceConversationModal
-                        isOpen={isVoiceModalOpen}
-                        onClose={() => setIsVoiceModalOpen(false)}
-                        onSubmit={setInput}
-                    />
-                )}
+                
                 {isLoading && (
                     <div className="text-center p-4">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>

@@ -22,8 +22,7 @@ export const TOOLS: FunctionDeclaration[] = [
       properties: {
         page: {
           type: Type.STRING,
-          description: 'اسم الصفحة المراد الانتقال إليها. القيم المحتملة: home, imageAnalysis, calorieCounter, smartHealth, pharmacy, healthDiary, chat, myPlants, globalSearch, schedule, beauty, decorations.',
-          enum: ['home', 'imageAnalysis', 'calorieCounter', 'smartHealth', 'pharmacy', 'healthDiary', 'chat', 'myPlants', 'globalSearch', 'schedule', 'beauty', 'decorations']
+          description: 'اسم الصفحة المراد الانتقال إليها من ضمن الصفحات المتاحة في التطبيق.',
         },
       },
       required: ['page'],

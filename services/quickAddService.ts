@@ -30,8 +30,8 @@ export const saveQuickAddActions = (actions: QuickAddAction[]): void => {
 };
 
 
-export const performQuickAdd = (item: QuickAddAction) => {
-  addDiaryEntry(new Date(), {
+export const performQuickAdd = (item: QuickAddAction, date: Date) => {
+  addDiaryEntry(date, {
     type: item.type,
     icon: item.icon,
     title: item.title,

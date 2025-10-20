@@ -19,7 +19,6 @@ interface VoiceConversationModalProps {
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
 
 const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen, onClose, onSubmit, onFunctionCall }) => {
-  const sessionPromiseRef = useRef<Promise<LiveSession> | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [status, setStatus] = useState<'idle' | 'listening' | 'processing' | 'speaking'>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -43,37 +42,15 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
   const followUpForRef = useRef(followUpFor);
   followUpForRef.current = followUpFor;
   
-  // FIX: Add a ref to track the current status without causing re-renders of dependent callbacks.
-  const statusRef = useRef(status);
-  statusRef.current = status;
-
-
   // Audio refs
   const outputAudioContextRef = useRef<AudioContext | null>(null);
   const nextStartTimeRef = useRef(0);
   const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
-  const audioProcessorRef = useRef<{ cleanup: () => void } | null>(null);
   const currentSpeechRef = useRef<AudioBufferSourceNode | null>(null);
+  const cleanupRef = useRef<() => void>();
 
-
-  const handleClose = useCallback(() => {
-    sessionPromiseRef.current?.then(session => {
-      session.close();
-    }).catch(() => {});
-    sessionPromiseRef.current = null;
-    
-    audioProcessorRef.current?.cleanup();
-    audioProcessorRef.current = null;
-    
-    if (outputAudioContextRef.current?.state !== 'closed') {
-      outputAudioContextRef.current?.close();
-      outputAudioContextRef.current = null;
-    }
-    
-    onClose(isSingleShotMode ? undefined : historyRef.current);
-  }, [onClose, isSingleShotMode]);
   
-    const playOutputSpeech = useCallback(async (base64Audio: string) => {
+  const playOutputSpeech = useCallback(async (base64Audio: string) => {
     if (!outputAudioContextRef.current || outputAudioContextRef.current.state === 'closed') {
       outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
     }
@@ -126,6 +103,7 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
     }
   
     if (message.toolCall?.functionCalls) {
+        const session = await cleanupRef.current?.['sessionPromise'];
         for (const fc of message.toolCall.functionCalls) {
             // Conversational action for adding a note
             if (fc.name === 'addToDiary' && !fc.args.entry) {
@@ -159,9 +137,9 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
                 toast.success('✅ تم تحليل السعرات بنجاح.');
             }
             
-            sessionPromiseRef.current?.then(session => session.sendToolResponse({
+            session?.sendToolResponse({
                 functionResponses: { id: fc.id, name: fc.name, response: { result } }
-            }));
+            });
         }
     }
   
@@ -171,21 +149,22 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
         const currentFollowUp = followUpForRef.current;
 
         if (currentFollowUp && finalInput) {
+            const session = await cleanupRef.current?.['sessionPromise'];
             if (currentFollowUp.name === 'addToDiary') {
                 const completedArgs = { ...currentFollowUp.args, entry: finalInput };
                 if (onFunctionCall) {
                     onFunctionCall(currentFollowUp.name, completedArgs);
                 }
-                sessionPromiseRef.current?.then(session => session.sendToolResponse({
+                session?.sendToolResponse({
                     functionResponses: { id: currentFollowUp.id, name: currentFollowUp.name, response: { result: `تمت إضافة الملاحظة: "${finalInput}"` } }
-                }));
+                });
             }
             setFollowUpFor(null);
         } else {
              if (finalInput) {
                 if (isSingleShotMode) {
                     if (onSubmit) onSubmit(finalInput);
-                    handleClose();
+                    if(cleanupRef.current) cleanupRef.current();
                     return;
                 }
                 setHistory(prev => [...prev, { role: 'user', text: finalInput }]);
@@ -208,101 +187,117 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
         nextStartTimeRef.current = 0;
         setStatus('idle');
     }
-  }, [onFunctionCall, onSubmit, isSingleShotMode, handleClose, playOutputSpeech]);
-  
-  const startListening = useCallback(async () => {
-    // FIX: Use statusRef to prevent re-entry, making the function stable.
-    if (statusRef.current === 'listening' || !sessionPromiseRef.current) return;
-    setStatus('listening');
-
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-        const inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-        const source = inputAudioContext.createMediaStreamSource(stream);
-        const scriptProcessor = inputAudioContext.createScriptProcessor(4096, 1, 1);
-        
-        scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
-            const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
-            const pcmBlob: GenAI_Blob = {
-                data: encode(new Uint8Array(new Int16Array(inputData.map(f => f * 32768)).buffer)),
-                mimeType: 'audio/pcm;rate=16000',
-            };
-            sessionPromiseRef.current?.then((session) => {
-              session.sendRealtimeInput({ media: pcmBlob });
-            });
-        };
-        
-        source.connect(scriptProcessor);
-        scriptProcessor.connect(inputAudioContext.destination);
-
-        audioProcessorRef.current = {
-            cleanup: () => {
-                stream.getTracks().forEach(track => track.stop());
-                source.disconnect();
-                scriptProcessor.disconnect();
-                if (inputAudioContext.state !== 'closed') {
-                    inputAudioContext.close();
-                }
-            }
-        };
-
-    } catch (err) {
-        console.error('Error starting audio stream:', err);
-        setError('حدث خطأ عند محاولة الوصول إلى الميكروفون. يرجى التأكد من منح الإذن.');
-        setStatus('idle');
-    }
-    // FIX: Removed `status` dependency to stabilize the function and prevent re-render loops.
-  }, []);
+  }, [onFunctionCall, onSubmit, isSingleShotMode, playOutputSpeech]);
 
   useEffect(() => {
     if (!isOpen) return;
-    
-    setStatus('idle');
-    setHistory([]);
-    setCurrentInput('');
-    setCurrentOutput('');
-    setError(null);
-    setFollowUpFor(null);
-    nextStartTimeRef.current = 0;
-    
-    const systemInstruction = isSingleShotMode
-        ? "مهمتك هي فقط تحويل كلام المستخدم إلى نص مكتوب بدقة باللغة العربية. لا تقم بالرد أو بدء حوار."
-        : "أنت 'عقل الروح التقنية'، مساعد صوتي ذكي ومتعدد الاستخدامات في تطبيق صحتك/كي. كن موجزاً ومتعاوناً ومباشراً. استجب للأوامر ونفذ الوظائف عند الطلب. خاطب المستخدم دائماً بصيغة المؤنث.";
 
-    sessionPromiseRef.current = ai.live.connect({
-        model: 'gemini-2.5-flash-native-audio-preview-09-2025',
-        callbacks: {
-            onopen: () => console.log('Live session opened'),
-            onmessage: handleMessage,
-            onerror: (e: ErrorEvent) => {
-                console.error('Live session error:', e);
-                setError('حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى.');
-                setStatus('idle');
-            },
-            onclose: () => console.log('Live session closed'),
-        },
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: { voiceConfig: { voiceName: 'Kore' } },
-          outputAudioTranscription: {},
-          inputAudioTranscription: {},
-          tools: [{ functionDeclarations: TOOLS }],
-          systemInstruction: systemInstruction,
-        },
-    });
+    let isMounted = true;
+    let sessionPromise: Promise<LiveSession> | null = null;
+    let session: LiveSession | null = null;
+    let mediaStream: MediaStream | null = null;
+    let inputAudioContext: AudioContext | null = null;
+    let sourceNode: MediaStreamAudioSourceNode | null = null;
+    let processorNode: ScriptProcessorNode | null = null;
 
-    sessionPromiseRef.current.then(() => {
-      startListening();
-    }).catch(err => {
-      console.error("Failed to connect to Live API", err);
-      setError("فشل الاتصال بمساعد الصوت.");
-    });
+    const cleanup = () => {
+        if (!isMounted) return;
+        isMounted = false;
+        
+        mediaStream?.getTracks().forEach(track => track.stop());
+        sourceNode?.disconnect();
+        processorNode?.disconnect();
+        if (inputAudioContext?.state !== 'closed') inputAudioContext?.close();
+        if (outputAudioContextRef.current?.state !== 'closed') outputAudioContextRef.current?.close();
+        
+        session?.close();
+        
+        for (const source of sourcesRef.current.values()) {
+            source.stop();
+        }
+        sourcesRef.current.clear();
+        nextStartTimeRef.current = 0;
+        
+        onClose(isSingleShotMode ? undefined : historyRef.current);
+    };
+    cleanupRef.current = cleanup;
+    cleanupRef.current['sessionPromise'] = sessionPromise;
+
+
+    const initialize = async () => {
+        setStatus('idle');
+        setHistory([]);
+        setCurrentInput('');
+        setCurrentOutput('');
+        setError(null);
+
+        const systemInstruction = isSingleShotMode
+            ? "مهمتك هي فقط تحويل كلام المستخدم إلى نص مكتوب بدقة باللغة العربية. لا تقم بالرد أو بدء حوار."
+            : "أنت 'عقل الروح التقنية'، مساعد صوتي ذكي ومتعدد الاستخدامات في تطبيق صحتك/كي. كن موجزاً ومتعاوناً ومباشراً. استجب للأوامر ونفذ الوظائف عند الطلب. خاطب المستخدم دائماً بصيغة المؤنث.";
+
+        try {
+            sessionPromise = ai.live.connect({
+                model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+                callbacks: {
+                    onopen: () => { if (!isMounted) cleanup(); },
+                    onmessage: handleMessage,
+                    onerror: (e: ErrorEvent) => {
+                        console.error('Live session error:', e);
+                        setError('حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى.');
+                        setStatus('idle');
+                        cleanup();
+                    },
+                    onclose: () => { if (isMounted) cleanup(); },
+                },
+                config: {
+                    responseModalities: [Modality.AUDIO],
+                    speechConfig: { voiceConfig: { voiceName: 'Kore' } },
+                    outputAudioTranscription: {},
+                    inputAudioTranscription: {},
+                    tools: [{ functionDeclarations: TOOLS }],
+                    systemInstruction: systemInstruction,
+                },
+            });
+            session = await sessionPromise;
+            cleanupRef.current['sessionPromise'] = session;
+
+
+            if (!isMounted) { cleanup(); return; }
+
+            setStatus('listening');
+            mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            if (!isMounted) { cleanup(); return; }
+            
+            inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+            sourceNode = inputAudioContext.createMediaStreamSource(mediaStream);
+            processorNode = inputAudioContext.createScriptProcessor(4096, 1, 1);
+
+            processorNode.onaudioprocess = (audioProcessingEvent) => {
+                const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                const pcmBlob: GenAI_Blob = {
+                    data: encode(new Uint8Array(new Int16Array(inputData.map(f => f * 32768)).buffer)),
+                    mimeType: 'audio/pcm;rate=16000',
+                };
+                session?.sendRealtimeInput({ media: pcmBlob });
+            };
+
+            sourceNode.connect(processorNode);
+            processorNode.connect(inputAudioContext.destination);
+
+        } catch (err) {
+            console.error("Voice Modal Initialization failed:", err);
+            setError("فشل تهيئة المساعد الصوتي. يرجى التحقق من أذونات الميكروفون.");
+            setStatus('idle');
+            cleanup();
+        }
+    };
+
+    initialize();
 
     return () => {
-      handleClose();
+        cleanup();
     };
-  }, [isOpen, handleMessage, handleClose, startListening, isSingleShotMode]);
+  }, [isOpen, isSingleShotMode, handleMessage, onClose]);
 
   const MicButton = () => {
     let Icon = Mic;
@@ -322,7 +317,6 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
 
     return (
       <button
-        onClick={status === 'listening' ? () => {} : startListening}
         disabled={status === 'speaking'}
         className={`relative w-20 h-20 rounded-full text-white transition-all duration-300 flex items-center justify-center shadow-lg ${color} disabled:opacity-70`}
       >
@@ -340,7 +334,7 @@ const VoiceConversationModal: React.FC<VoiceConversationModalProps> = ({ isOpen,
            <button onClick={() => setIsCommandGuideOpen(true)} className="p-2.5 rounded-full text-white/80 hover:bg-white/20 transition">
              <Info size={24} />
            </button>
-           <button onClick={handleClose} className="p-2.5 rounded-full text-white/80 hover:bg-white/20 transition">
+           <button onClick={() => { if (cleanupRef.current) cleanupRef.current()}} className="p-2.5 rounded-full text-white/80 hover:bg-white/20 transition">
              <X size={24} />
            </button>
         </div>
