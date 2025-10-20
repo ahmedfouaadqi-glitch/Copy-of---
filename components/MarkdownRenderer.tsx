@@ -41,7 +41,16 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
 
   lines.forEach((line, index) => {
     const trimmedLine = line.trim();
-    if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+    if (trimmedLine.startsWith('### ')) {
+        flushList();
+        elements.push(<h3 key={`h3-${index}`} className="text-lg font-bold mt-4 mb-2">{renderInline(trimmedLine.substring(4))}</h3>);
+    } else if (trimmedLine.startsWith('## ')) {
+        flushList();
+        elements.push(<h2 key={`h2-${index}`} className="text-xl font-bold mt-5 mb-3">{renderInline(trimmedLine.substring(3))}</h2>);
+    } else if (trimmedLine.startsWith('# ')) {
+        flushList();
+        elements.push(<h1 key={`h1-${index}`} className="text-2xl font-bold mt-6 mb-4">{renderInline(trimmedLine.substring(2))}</h1>);
+    } else if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
       currentList.push(trimmedLine.substring(2));
     } else {
       flushList(); // End any existing list

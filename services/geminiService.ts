@@ -73,7 +73,7 @@ export const callGeminiChatApi = async (messages: ChatMessage[], systemInstructi
             model: 'gemini-2.5-flash',
             contents: contents,
             config: {
-                systemInstruction: systemInstruction,
+                systemInstruction: `${systemInstruction} الرجاء الرد دائماً باللغة العربية الفصحى.`,
             },
         });
 
@@ -157,6 +157,7 @@ export const callGeminiSearchApi = async (query: string): Promise<{ text: string
             contents: query,
             config: {
                 tools: [{ googleSearch: {} }],
+                systemInstruction: 'أنت مساعد بحث مفيد. لخص النتائج باللغة العربية الفصحى.',
             },
         });
         

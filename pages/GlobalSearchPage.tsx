@@ -1,11 +1,9 @@
-
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { NavigationProps, GroundingChunk } from '../types';
 import { callGeminiSearchApi } from '../services/geminiService';
 import PageHeader from '../components/PageHeader';
 import { FEATURES } from '../constants';
-import { Search, Sparkles, Link } from 'lucide-react';
+import { Search, Sparkles, Link, BrainCircuit, Lightbulb } from 'lucide-react';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 
 
@@ -21,10 +19,50 @@ const GlobalSearchPage: React.FC<NavigationProps> = ({ navigateTo }) => {
 
     const handleSearch = async (searchText = input) => {
         if (!searchText.trim()) return;
+        const normalizedSearchText = searchText.trim().toLowerCase();
+
+        setInput(searchText); // Ensure input is updated if called from example
         setIsLoading(true);
         setResult('');
         setError(null);
         setGroundingChunks([]);
+
+        if (normalizedSearchText === 'احمد معروف' || normalizedSearchText === 'ahmed maaroof') {
+            const bio = `### أحمد معروف: صاحب الفكرة والمالك لتطبيق "صحتك/كي"
+
+**أحمد معروف** هو العقل المبدع وراء تطبيق "صحتك/كي"، وهو صاحب الفكرة والمالك لهذا المشروع الطموح الذي يهدف إلى دمج التكنولوجيا المتقدمة مع الحياة اليومية لتحسين الصحة والرفاهية.
+
+بفضل رؤيته الثاقبة، وُلد تطبيق "صحتك/كي" ليكون أكثر من مجرد تطبيق صحي، بل رفيقاً ذكياً وشاملاً يساعد المستخدمين في كل جوانب حياتهم، من التغذية والجمال إلى الديكور والصحة النفسية. يجمع أحمد بين الشغف بالابتكار والالتزام العميق بتقديم حلول عملية ومؤثرة تلامس حياة الناس بشكل إيجابي.
+
+يتمتع بخبرة واسعة في مجالات التكنولوجيا، التكنولوجيا المالية (FinTech)، والذكاء الاصطناعي، مما مكنه من بناء أساس تقني متين للتطبيق.
+
+يؤمن أحمد معروف بأن المستقبل يكمن في تسخير قوة الذكاء الاصطناعي لخدمة الإنسان، وتطبيق "صحتك/كي" هو تجسيد حي لهذه الفلسفة.
+`;
+            setResult(bio);
+            setIsLoading(false);
+            return;
+        }
+
+        const appSearchTerms = ["صحتك/كي", "aihealthq", "تطبيقصحتك/كي", "صحتككي"];
+        if (appSearchTerms.includes(normalizedSearchText.replace(/\s/g, ''))) {
+            const appInfo = `### عن تطبيق "صحتك/كي" (AiHealthQ)
+
+**صحتك/كي** هو تطبيق ذكي ومتكامل للحياة والصحة، مصمم ليكون رفيقك اليومي نحو حياة أفضل. يعتمد التطبيق على أحدث تقنيات الذكاء الاصطناعي والتحليل البصري ليقدم لك تجربة فريدة ومخصصة.
+
+#### الميزات الرئيسية:
+- **الكاميرا الذكية:** حلل الأطعمة، الأدوية، النباتات، ومنتجات التجميل بمجرد التقاط صورة.
+- **مراكز استشارية متخصصة:** احصل على نصائح الخبراء في مجالات الجمال، الديكور، الطهي، وتنظيم الجداول.
+- **مستشار الطهي والسعرات:** ابتكر وصفات صحية من المكونات المتاحة لديك وحلل قيمتها الغذائية.
+- **يومياتي الصحية:** سجل أنشطتك وتتبع تقدمك بسهولة، واحصل على تحليل أسبوعي ذكي.
+- **عقل الروح التقنية:** دردش مع مساعدك الذكي واحصل على إجابات فورية لأي سؤال يخطر ببالك.
+
+يهدف **صحتك/كي** إلى تمكينك من اتخاذ قرارات صحية أفضل من خلال جعل المعلومات والنصائح في متناول يدك بطريقة سهلة وتفاعلية.
+`;
+            setResult(appInfo);
+            setIsLoading(false);
+            return;
+        }
+
         try {
             const { text, groundingChunks } = await callGeminiSearchApi(searchText);
             setResult(text);
@@ -67,6 +105,35 @@ const GlobalSearchPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                         </button>
                     </div>
                 </div>
+
+                {!isLoading && !result && !error && (
+                    <div className="mt-6 text-center bg-white dark:bg-black p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-800">
+                        <BrainCircuit size={40} className="mx-auto text-indigo-400 mb-3" />
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">
+                            مرحباً بك في مركز الروح التقنية
+                        </h2>
+                        <p className="text-gray-600 dark:text-gray-400 mt-2 mb-4">
+                            هنا، يمكنك البحث عن أي شيء يخطر ببالك. سيقوم مساعدنا الذكي بالبحث في الويب وتقديم إجابة شاملة مدعومة بالمصادر.
+                        </p>
+                        <div className="border-t border-gray-200 dark:border-gray-800 pt-4">
+                             <h3 className="text-md font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center justify-center gap-2">
+                                <Lightbulb size={18}/>
+                                جرب أن تسأل:
+                             </h3>
+                             <div className="flex flex-wrap justify-center gap-2">
+                                <button onClick={() => handleSearch('ما هي فوائد الأفوكادو؟')} className="px-3 py-1.5 bg-indigo-50 dark:bg-black text-indigo-700 dark:text-indigo-300 rounded-full text-sm border border-indigo-200 dark:border-indigo-500/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition">
+                                    ما هي فوائد الأفوكادو؟
+                                </button>
+                                <button onClick={() => handleSearch('أفضل التمارين لتقوية الظهر')} className="px-3 py-1.5 bg-indigo-50 dark:bg-black text-indigo-700 dark:text-indigo-300 rounded-full text-sm border border-indigo-200 dark:border-indigo-500/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition">
+                                    أفضل التمارين لتقوية الظهر
+                                </button>
+                                <button onClick={() => handleSearch('من هو مخترع الإنترنت؟')} className="px-3 py-1.5 bg-indigo-50 dark:bg-black text-indigo-700 dark:text-indigo-300 rounded-full text-sm border border-indigo-200 dark:border-indigo-500/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition">
+                                    من هو مخترع الإنترنت؟
+                                </button>
+                             </div>
+                        </div>
+                    </div>
+                )}
                 
                 {isLoading && (
                     <div className="text-center p-4 mt-6">

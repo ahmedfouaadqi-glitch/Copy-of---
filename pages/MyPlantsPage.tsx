@@ -48,7 +48,7 @@ const MyPlantsPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const handleAddNewPlant = useCallback(async (plantName: string, plantImage: string) => {
         setIsLoading(true);
         try {
-            const prompt = `بصفتك خبير نباتات، قدم جدول عناية بسيط وموجز لنبتة "${plantName}". اذكر فقط:
+            const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** بصفتك خبير نباتات، قدم جدول عناية بسيط وموجز لنبتة "${plantName}". اذكر فقط:
 1.  **الري:** (مثال: مرة كل أسبوع)
 2.  **التسميد:** (مثال: مرة كل شهر في الربيع والصيف)`;
 
