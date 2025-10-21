@@ -1,6 +1,6 @@
 import { LucideIcon } from 'lucide-react';
 
-export type PageType = 'home' | 'imageAnalysis' | 'calorieCounter' | 'smartHealth' | 'pharmacy' | 'healthDiary' | 'chat' | 'myPlants' | 'globalSearch' | 'schedule' | 'beauty' | 'decorations' | 'sportsTrainer';
+export type PageType = 'home' | 'imageAnalysis' | 'calorieCounter' | 'smartHealth' | 'pharmacy' | 'healthDiary' | 'chat' | 'myPlants' | 'globalSearch' | 'schedule' | 'beauty' | 'decorations' | 'sportsTrainer' | 'gaming' | 'financial' | 'auto';
 
 export type Page =
   | { type: 'home' }
@@ -11,7 +11,7 @@ export type Page =
   | { type: 'chat' }
   | { type: 'myPlants' }
   | { type: 'globalSearch' }
-  | { type: 'smartHealth', pageType: 'beauty' | 'decorations' | 'schedule' }
+  | { type: 'smartHealth', pageType: 'beauty' | 'decorations' | 'schedule' | 'gaming' | 'financial' | 'auto' }
   | { type: 'schedule' }
   | { type: 'sportsTrainer' };
 

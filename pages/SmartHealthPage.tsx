@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { NavigationProps, Feature } from '../types';
 import { callGeminiApi } from '../services/geminiService';
@@ -6,7 +7,7 @@ import PageHeader from '../components/PageHeader';
 import { Sparkles } from 'lucide-react';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import Feedback from '../components/Feedback';
-import { PERSONAL_ADVISOR_BEAUTY_SUB_FEATURES, DECORATIONS_SUB_FEATURES, SCHEDULE_SUB_FEATURES } from '../constants';
+import { PERSONAL_ADVISOR_BEAUTY_SUB_FEATURES, DECORATIONS_SUB_FEATURES, SCHEDULE_SUB_FEATURES, GAMING_ADVISOR_SUB_FEATURES, FINANCIAL_ADVISOR_SUB_FEATURES, AUTO_TECH_ADVISOR_SUB_FEATURES } from '../constants';
 import { useAnalysis } from '../context/AnalysisContext';
 import MediaInput from '../components/MediaInput';
 import FollowUpChat from '../components/FollowUpChat';
@@ -45,6 +46,12 @@ const SmartHealthPage: React.FC<SmartHealthPageProps> = ({ feature, navigateTo }
         return DECORATIONS_SUB_FEATURES.subCategories;
       case 'schedule':
         return SCHEDULE_SUB_FEATURES.subCategories;
+      case 'gaming':
+        return GAMING_ADVISOR_SUB_FEATURES.subCategories;
+      case 'financial':
+        return FINANCIAL_ADVISOR_SUB_FEATURES.subCategories;
+      case 'auto':
+        return AUTO_TECH_ADVISOR_SUB_FEATURES.subCategories;
       default:
         return [];
     }

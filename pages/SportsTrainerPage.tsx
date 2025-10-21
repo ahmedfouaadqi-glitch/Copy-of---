@@ -145,6 +145,7 @@ const SportsTrainerPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                         <option>فقدان الوزن</option>
                         <option>بناء العضلات</option>
                         <option>زيادة اللياقة</option>
+                        <option>تحسين الأداء الرياضي</option>
                     </select>
                 </div>
                  <div>
