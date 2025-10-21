@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { NavigationProps, WorkoutPlan, WorkoutDay } from '../types';
+import React, { useState, useEffect, useCallback } from 'react';
+import { NavigationProps, WorkoutPlan, WorkoutDay, WorkoutExercise } from '../types';
 import { callGeminiJsonApi } from '../services/geminiService';
 import PageHeader from '../components/PageHeader';
-import { Dumbbell, Sparkles, Activity, Calendar, Zap, Repeat, Info, Trash2, ArrowLeft } from 'lucide-react';
+import { Dumbbell, Sparkles, ArrowLeft, Trash2, Edit, Save, CheckCircle } from 'lucide-react';
 import { FEATURES } from '../constants';
 import { Type } from '@google/genai';
-import MarkdownRenderer from '../components/MarkdownRenderer';
 
 const feature = FEATURES.find(f => f.pageType === 'sportsTrainer')!;
 const PLAN_STORAGE_KEY = 'sportsTrainerPlan';
@@ -44,21 +43,25 @@ const planSchema = {
 
 
 const SportsTrainerPage: React.FC<NavigationProps> = ({ navigateTo }) => {
-    const [plan, setPlan] = useState<WorkoutPlan | null>(null);
+    const [originalPlan, setOriginalPlan] = useState<WorkoutPlan | null>(null);
+    const [editedPlan, setEditedPlan] = useState<WorkoutPlan | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [formState, setFormState] = useState({
         goal: 'فقدان الوزن',
         level: 'مبتدئ',
         days: '3',
-        equipment: 'لا يوجد'
+        equipment: 'لا يوجد (وزن الجسم)'
     });
     const [activeDayIndex, setActiveDayIndex] = useState<number | null>(null);
+    const [isEditing, setIsEditing] = useState(false);
     
     useEffect(() => {
         const savedPlan = localStorage.getItem(PLAN_STORAGE_KEY);
         if (savedPlan) {
-            setPlan(JSON.parse(savedPlan));
+            const parsedPlan = JSON.parse(savedPlan);
+            setOriginalPlan(parsedPlan);
+            setEditedPlan(parsedPlan); // Initialize edited plan
         }
     }, []);
 
@@ -69,7 +72,9 @@ const SportsTrainerPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const generatePlan = async () => {
         setIsLoading(true);
         setError(null);
-        setPlan(null);
+        setOriginalPlan(null);
+        setEditedPlan(null);
+        setActiveDayIndex(null);
 
         const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت مدرب رياضي شخصي معتمد وخبير في إنشاء خطط تمارين. بناءً على المعلومات التالية للمستخدم:
 - **الهدف:** ${formState.goal}
@@ -81,8 +86,13 @@ const SportsTrainerPage: React.FC<NavigationProps> = ({ navigateTo }) => {
         
         try {
             const result = await callGeminiJsonApi(prompt, planSchema);
-            setPlan(result);
-            localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(result));
+            if (result && result.weeklyPlan) {
+                setOriginalPlan(result);
+                setEditedPlan(JSON.parse(JSON.stringify(result))); // Deep copy for editing
+                localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(result));
+            } else {
+                throw new Error("لم يتمكن الذكاء الاصطناعي من إنشاء خطة بالصيغة الصحيحة.");
+            }
         } catch (e) {
             setError(e instanceof Error ? e.message : "فشل إنشاء الخطة.");
         } finally {
@@ -91,10 +101,40 @@ const SportsTrainerPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     };
     
     const clearPlan = () => {
-        setPlan(null);
+        setOriginalPlan(null);
+        setEditedPlan(null);
+        setActiveDayIndex(null);
+        setIsEditing(false);
         localStorage.removeItem(PLAN_STORAGE_KEY);
     }
     
+    const handleExerciseChange = (dayIndex: number, exIndex: number, field: keyof WorkoutExercise, value: string) => {
+        if (!editedPlan) return;
+        const newPlan = JSON.parse(JSON.stringify(editedPlan)); // Deep copy
+        newPlan.weeklyPlan[dayIndex].exercises[exIndex][field] = value;
+        setEditedPlan(newPlan);
+    };
+
+    const saveChanges = () => {
+        if (!originalPlan || !editedPlan) return;
+        
+        const correctionData = {
+            timestamp: Date.now(),
+            originalPlan,
+            correctedPlan: editedPlan,
+        };
+        
+        const corrections = JSON.parse(localStorage.getItem('plan_corrections') || '[]');
+        corrections.push(correctionData);
+        localStorage.setItem('plan_corrections', JSON.stringify(corrections));
+        
+        // Save the user's version as the current plan
+        localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(editedPlan));
+        setOriginalPlan(editedPlan);
+        setIsEditing(false);
+    };
+
+
     const renderPlanSetup = () => (
         <div className="bg-white dark:bg-black p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-800">
             <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">أنشئ خطتك المخصصة</h2>
@@ -134,7 +174,7 @@ const SportsTrainerPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                     </select>
                 </div>
             </div>
-            <button onClick={generatePlan} className="w-full mt-6 p-3 bg-cyan-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-cyan-600 transition">
+            <button onClick={generatePlan} className="w-full mt-6 p-3 bg-cyan-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-cyan-600 transition active:scale-95">
                 <Sparkles size={20} />
                 أنشئ الخطة بالذكاء الاصطناعي
             </button>
@@ -143,32 +183,39 @@ const SportsTrainerPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     
     const renderPlanView = () => (
       <div>
-        <div className="bg-white dark:bg-black p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-800 mb-4">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">خطتك الأسبوعية</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">هذه هي خطتك المخصصة. اضغط على أي يوم لعرض التمارين.</p>
+        <div className="bg-white dark:bg-black p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-800 mb-4 flex justify-between items-center">
+            <div>
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-1">خطتك الأسبوعية</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">هذه هي خطتك المخصصة. اضغط على أي يوم لعرض التمارين.</p>
+            </div>
+            {!isEditing && (
+                 <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 text-sm font-semibold rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">
+                    <Edit size={16} /> تعديل
+                </button>
+            )}
         </div>
         <div className="space-y-3">
-        {plan?.weeklyPlan.map((day, index) => (
+        {editedPlan?.weeklyPlan.map((day, index) => (
             <div key={index} className="bg-white dark:bg-black rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
-                <button onClick={() => setActiveDayIndex(activeDayIndex === index ? null : index)} className="w-full p-4 text-right flex justify-between items-center">
+                <button onClick={() => setActiveDayIndex(activeDayIndex === index ? null : index)} className="w-full p-4 text-right flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-900/50 transition">
                     <div>
                         <p className="text-sm text-cyan-600 dark:text-cyan-400 font-semibold">{day.day}</p>
                         <h3 className="font-bold text-lg text-gray-800 dark:text-gray-200">{day.focus}</h3>
                     </div>
-                     <ArrowLeft className={`w-5 h-5 transition-transform duration-300 ${activeDayIndex === index ? '-rotate-90' : ''}`} />
+                     <ArrowLeft className={`w-5 h-5 transition-transform duration-300 ${activeDayIndex === index ? '-rotate-90' : 'rotate-180'}`} />
                 </button>
                 {activeDayIndex === index && (
                     <div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-black/50">
-                        {day.exercises.length > 0 ? (
+                        {day.exercises && day.exercises.length > 0 ? (
                             <ul className="space-y-4">
                                 {day.exercises.map((ex, exIndex) => (
                                 <li key={exIndex} className="p-3 bg-white dark:bg-black rounded-md border dark:border-gray-700">
-                                    <h4 className="font-bold text-gray-700 dark:text-gray-100">{ex.name}</h4>
+                                    <input value={ex.name} onChange={(e) => handleExerciseChange(index, exIndex, 'name', e.target.value)} disabled={!isEditing} className="font-bold text-gray-700 dark:text-gray-100 bg-transparent w-full disabled:pointer-events-none p-1 -m-1 rounded-md focus:bg-gray-100 dark:focus:bg-gray-800" />
                                     <div className="flex gap-4 text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                        <span><span className="font-semibold">{ex.sets}</span> مجموعات</span>
-                                        <span><span className="font-semibold">{ex.reps}</span> تكرار</span>
+                                        <span><input value={ex.sets} onChange={(e) => handleExerciseChange(index, exIndex, 'sets', e.target.value)} disabled={!isEditing} className="font-semibold w-8 text-center bg-transparent disabled:pointer-events-none p-1 -m-1 rounded-md focus:bg-gray-100 dark:focus:bg-gray-800" /> مجموعات</span>
+                                        <span><input value={ex.reps} onChange={(e) => handleExerciseChange(index, exIndex, 'reps', e.target.value)} disabled={!isEditing} className="font-semibold w-16 text-center bg-transparent disabled:pointer-events-none p-1 -m-1 rounded-md focus:bg-gray-100 dark:focus:bg-gray-800"/> تكرار</span>
                                     </div>
-                                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">{ex.description}</p>
+                                    <textarea value={ex.description} onChange={(e) => handleExerciseChange(index, exIndex, 'description', e.target.value)} disabled={!isEditing} className="text-sm text-gray-600 dark:text-gray-300 mt-2 w-full bg-transparent resize-none disabled:pointer-events-none p-1 -m-1 rounded-md focus:bg-gray-100 dark:focus:bg-gray-800" rows={2}/>
                                 </li>
                                 ))}
                             </ul>
@@ -180,10 +227,15 @@ const SportsTrainerPage: React.FC<NavigationProps> = ({ navigateTo }) => {
             </div>
         ))}
         </div>
-        <button onClick={clearPlan} className="w-full mt-6 p-3 bg-red-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-red-600 transition">
-            <Trash2 size={20} />
-            مسح الخطة والبدء من جديد
-        </button>
+         {isEditing ? (
+            <button onClick={saveChanges} className="w-full mt-6 p-3 bg-green-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-green-600 transition active:scale-95">
+                <Save size={20} /> حفظ التغييرات
+            </button>
+         ) : (
+            <button onClick={clearPlan} className="w-full mt-6 p-3 bg-red-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-red-600 transition active:scale-95">
+                <Trash2 size={20} /> مسح الخطة والبدء من جديد
+            </button>
+         )}
       </div>
     );
 
@@ -201,10 +253,11 @@ const SportsTrainerPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                     <div className="bg-red-100 dark:bg-black border border-red-300 dark:border-red-500/50 text-red-800 dark:text-red-300 p-4 rounded-lg shadow-md">
                         <h3 className="font-bold mb-2">حدث خطأ</h3>
                         <p>{error}</p>
+                        <button onClick={() => setError(null)} className="mt-2 text-sm text-red-700 dark:text-red-300 underline">حاول مرة أخرى</button>
                     </div>
                 )}
 
-                {!isLoading && !error && (plan ? renderPlanView() : renderPlanSetup())}
+                {!isLoading && !error && (originalPlan ? renderPlanView() : renderPlanSetup())}
             </main>
         </div>
     );

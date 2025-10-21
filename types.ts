@@ -103,3 +103,13 @@ export interface WorkoutDay {
 export interface WorkoutPlan {
     weeklyPlan: WorkoutDay[];
 }
+
+export interface VisualFoodAnalysis {
+    foodName: string;
+    estimatedWeight: number;
+    calories: number;
+    protein: number;
+    carbohydrates: number;
+    fats: number;
+    advice: string;
+}

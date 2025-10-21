@@ -1,5 +1,5 @@
-import { GoogleGenAI, GenerateContentResponse, Part, Modality, Content } from "@google/genai";
-import { ChatMessage, DiaryEntry, GroundingChunk } from '../types';
+import { GoogleGenAI, GenerateContentResponse, Part, Modality, Content, Type } from "@google/genai";
+import { ChatMessage, DiaryEntry, GroundingChunk, VisualFoodAnalysis } from '../types';
 import { getDiaryEntries } from "./diaryService";
 
 // Per guidelines, initialize with apiKey from environment variables.
@@ -68,6 +68,40 @@ export const callGeminiJsonApi = async (prompt: string, schema: any): Promise<an
         throw new Error("فشل في توليد الخطة المنظمة. يرجى المحاولة مرة أخرى.");
     }
 };
+
+const visualFoodSchema = {
+    type: Type.OBJECT,
+    properties: {
+        foodName: { type: Type.STRING, description: "اسم الطعام الذي تم التعرف عليه." },
+        estimatedWeight: { type: Type.NUMBER, description: "الوزن المقدر للطعام بالجرام." },
+        calories: { type: Type.NUMBER, description: "السعرات الحرارية المقدرة." },
+        protein: { type: Type.NUMBER, description: "جرامات البروتين المقدرة." },
+        carbohydrates: { type: Type.NUMBER, description: "جرامات الكربوهيدرات المقدرة." },
+        fats: { type: Type.NUMBER, description: "جرامات الدهون المقدرة." },
+        advice: { type: Type.STRING, description: "نصيحة صحية موجزة حول هذا الطعام." },
+    },
+    required: ["foodName", "estimatedWeight", "calories", "protein", "carbohydrates", "fats", "advice"],
+};
+
+export const callGeminiVisualJsonApi = async (prompt: string, image: { mimeType: string; data: string }): Promise<VisualFoodAnalysis> => {
+     try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: { parts: [{ text: prompt }, { inlineData: { mimeType: image.mimeType, data: image.data } }] },
+            config: {
+                responseMimeType: 'application/json',
+                responseSchema: visualFoodSchema,
+            },
+        });
+        
+        const jsonText = response.text.trim();
+        const cleanedJsonText = jsonText.replace(/^```json\n/, '').replace(/\n```$/, '');
+        return JSON.parse(cleanedJsonText) as VisualFoodAnalysis;
+    } catch (error) {
+        console.error("Error calling Gemini Visual JSON API:", error);
+        throw new Error("فشل في تحليل الصورة غذائياً. يرجى المحاولة مرة أخرى.");
+    }
+}
 
 
 /**
