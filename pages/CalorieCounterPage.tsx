@@ -305,6 +305,10 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
         );
     };
 
+    const ttsText = analysisResult
+      ? `تم تحليل طعامك، وهو ${analysisResult.foodName}. الوزن المقدر هو ${analysisResult.estimatedWeight} جرام، ويحتوي على حوالي ${analysisResult.calories} سعرة حرارية. نصيحة الخبراء: ${analysisResult.advice}`
+      : result || '';
+
 
     return (
         <div className="bg-gray-50 dark:bg-black min-h-screen">
@@ -372,7 +376,7 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                                 <Sparkles size={20} />
                                 {mode === 'calories' ? 'التحليل الغذائي' : mode === 'visual' ? 'التقدير البصري' : 'وصفتك المقترحة'}
                             </h3>
-                            <TTSButton textToRead={result || JSON.stringify(analysisResult)} />
+                            <TTSButton textToRead={ttsText} />
                         </div>
                         
                         {localImage && (

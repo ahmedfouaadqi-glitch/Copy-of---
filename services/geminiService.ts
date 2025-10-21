@@ -10,7 +10,7 @@ const handleGeminiError = (error: any): string => {
     let message = "فشل الاتصال بالذكاء الاصطناعي. يرجى المحاولة مرة أخرى.";
     if (error.message) {
         if (error.message.includes('API key not valid')) {
-            message = "مفتاح API غير صالح. يرجى التحقق من مفتاحك والمحاولة مرة أخرى (خاص بخدمة Veo).";
+            message = "مفتاح API غير صالح. يرجى التحقق من مفتاحك والمحاولة مرة أخرى (خاص بخدمة إنشاء الفيديو).";
         } else if (error.message.includes('429')) {
              message = "تم تجاوز حد الطلبات. يرجى المحاولة مرة أخرى لاحقًا.";
         } else if (error.message.includes('SAFETY')) {
@@ -162,8 +162,11 @@ export const generateImage = async (prompt: string, aspectRatio: '1:1' | '16:9' 
                 aspectRatio,
             },
         });
-        const base64ImageBytes = response.generatedImages[0].image.imageBytes;
-        return `data:image/jpeg;base64,${base64ImageBytes}`;
+        if (response.generatedImages?.[0]?.image?.imageBytes) {
+            const base64ImageBytes = response.generatedImages[0].image.imageBytes;
+            return `data:image/jpeg;base64,${base64ImageBytes}`;
+        }
+        throw new Error("لم يتم العثور على بيانات الصورة في الاستجابة.");
     } catch (error) {
         throw new Error(handleGeminiError(error));
     }
@@ -271,8 +274,8 @@ export const editImage = async (prompt: string, image: { mimeType: string, data:
             contents: { parts: [ { inlineData: { mimeType: image.mimeType, data: image.data } }, { text: prompt } ] },
             config: { responseModalities: [Modality.IMAGE] },
         });
-        for (const part of response.candidates[0].content.parts) {
-            if (part.inlineData) return part.inlineData.data;
+        for (const part of response.candidates?.[0]?.content?.parts || []) {
+            if (part.inlineData?.data) return part.inlineData.data;
         }
         throw new Error("لم يتم العثور على صورة في الاستجابة.");
     } catch (error) {

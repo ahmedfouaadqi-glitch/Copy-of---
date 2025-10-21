@@ -6,6 +6,7 @@ import { playSound } from '../services/soundService';
 
 interface BottomNavBarProps extends NavigationProps {
   currentPage: Page;
+  diaryIndicatorActive: boolean;
 }
 
 const navItems = [
@@ -16,7 +17,7 @@ const navItems = [
   { page: { type: 'globalSearch' } as Page, pageType: 'globalSearch', Icon: Search, label: 'البحث' },
 ];
 
-const BottomNavBar: React.FC<BottomNavBarProps> = ({ currentPage, navigateTo }) => {
+const BottomNavBar: React.FC<BottomNavBarProps> = ({ currentPage, navigateTo, diaryIndicatorActive }) => {
   const { trackFeatureUsage } = useFeatureUsage();
 
   const handleNavigation = (page: Page, pageType: string) => {
@@ -34,6 +35,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ currentPage, navigateTo }) 
       <div className="flex justify-around items-center h-full max-w-lg mx-auto">
         {navItems.map(({ page, pageType, Icon, label }) => {
           const isActive = isCurrentPage(pageType);
+          const hasIndicator = pageType === 'healthDiary' && diaryIndicatorActive;
           return (
             <button
               key={pageType}
@@ -41,7 +43,12 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ currentPage, navigateTo }) 
               className={`flex flex-col items-center justify-center h-full w-full text-xs transition-colors duration-200
                 ${isActive ? 'text-teal-500 dark:text-teal-400 font-bold' : 'text-gray-500 dark:text-gray-400 hover:text-teal-500'}`}
             >
-              <Icon className="w-6 h-6 mb-0.5" />
+              <div className="relative">
+                 <Icon className="w-6 h-6 mb-0.5" />
+                 {hasIndicator && (
+                    <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-teal-500 ring-2 ring-white dark:ring-black animate-pulse"></span>
+                 )}
+              </div>
               <span>{label}</span>
             </button>
           );

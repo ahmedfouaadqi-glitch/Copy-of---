@@ -92,7 +92,7 @@ const GlobalSearchPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                          return (
                             <li key={`map-${index}`}>
                                 <a href={chunk.maps.uri} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline truncate block">
-                                    <Map size={12} className="inline-block mr-1"/> {chunk.maps.title || 'عرض على الخرائط'}
+                                    <Map size={12} className="inline-block mr-1"/> {chunk.maps.title || 'عرض الموقع'}
                                 </a>
                             </li>
                         );
@@ -128,7 +128,7 @@ const GlobalSearchPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                      <div className="mt-3">
                         <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
                             <input type="checkbox" checked={useMaps} onChange={() => setUseMaps(!useMaps)} className="rounded text-indigo-500 focus:ring-indigo-500" />
-                            البحث باستخدام الخرائط (قد يطلب إذن الموقع)
+                            البحث المكاني (قد يطلب إذن الموقع)
                         </label>
                     </div>
                     <div className="mt-4">

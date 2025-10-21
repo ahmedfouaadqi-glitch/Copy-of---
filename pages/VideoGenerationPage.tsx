@@ -126,7 +126,7 @@ const VideoGenerationPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                             <div className="py-1"><AlertTriangle className="h-6 w-6 text-yellow-500 mr-4" /></div>
                             <div>
                                 <p className="font-bold">مطلوب مفتاح API</p>
-                                <p className="text-sm">هذه الميزة التجريبية تتطلب منك اختيار مفتاح API خاص بك من Google AI Studio.</p>
+                                <p className="text-sm">هذه الميزة التجريبية تتطلب منك اختيار مفتاح API خاص بك من منصة المطورين.</p>
                                 <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="text-sm underline hover:text-yellow-900 dark:hover:text-yellow-100">
                                     معلومات حول الفوترة
                                 </a>
@@ -163,7 +163,7 @@ const VideoGenerationPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                         <h3 className="text-lg font-bold mb-2">الفيديو جاهز!</h3>
                         <video src={videoUrl} controls className="w-full rounded-lg"></video>
                         <div className="mt-4 flex gap-2">
-                             <a href={videoUrl} download={`veo-video-${Date.now()}.mp4`} className="flex-1 p-2 bg-green-500 text-white rounded-md flex items-center justify-center gap-2 text-center">
+                             <a href={videoUrl} download={`video-${Date.now()}.mp4`} className="flex-1 p-2 bg-green-500 text-white rounded-md flex items-center justify-center gap-2 text-center">
                                 <Download size={16}/> تحميل
                              </a>
                             <button onClick={resetState} className="flex-1 p-2 bg-blue-500 text-white rounded-md flex items-center justify-center gap-2"><RefreshCw size={16}/> إنشاء جديد</button>

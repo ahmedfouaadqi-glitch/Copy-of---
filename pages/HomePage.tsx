@@ -5,11 +5,20 @@ import FeatureCard from '../components/FeatureCard';
 import { HeartPulse } from 'lucide-react';
 import { useFeatureUsage } from '../hooks/useFeatureUsage';
 import MorningBriefing from '../components/MorningBriefing';
+import { getShoppingList } from '../services/shoppingListService';
+import { getActiveChallenges } from '../services/challengeService';
 
-const HomePage: React.FC<NavigationProps> = ({ navigateTo }) => {
+interface HomePageProps extends NavigationProps {
+    diaryIndicatorActive: boolean;
+}
+
+const HomePage: React.FC<HomePageProps> = ({ navigateTo, diaryIndicatorActive }) => {
   const { getUsageSortedFeatures } = useFeatureUsage();
 
   const sortedFeatures = useMemo(() => getUsageSortedFeatures(FEATURES), [getUsageSortedFeatures]);
+  const shoppingListCount = getShoppingList().filter(item => !item.isChecked).length;
+  const activeChallengesCount = getActiveChallenges().length;
+
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black flex flex-col">
@@ -24,7 +33,16 @@ const HomePage: React.FC<NavigationProps> = ({ navigateTo }) => {
         <p className="text-center text-gray-600 dark:text-gray-400 mb-6">تطبيق الحياة بروح رقمية</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
           {sortedFeatures.map(feature => (
-            <FeatureCard key={feature.pageType} feature={feature} navigateTo={navigateTo} />
+            <FeatureCard 
+                key={feature.pageType} 
+                feature={feature} 
+                navigateTo={navigateTo} 
+                indicator={
+                    (feature.pageType === 'shoppingList' && shoppingListCount > 0) ? shoppingListCount :
+                    (feature.pageType === 'challenges' && activeChallengesCount > 0) ? activeChallengesCount :
+                    (feature.pageType === 'healthDiary' && diaryIndicatorActive) ? '✨' : undefined
+                }
+            />
           ))}
         </div>
       </main>

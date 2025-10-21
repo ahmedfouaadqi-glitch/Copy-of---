@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { NavigationProps, ChatMessage, PageType } from '../types';
 import { callGeminiChatApi, generateImage } from '../services/geminiService';
 import PageHeader from '../components/PageHeader';
-import { FEATURES } from '../constants';
+import { FEATURES, SYSTEM_INSTRUCTION_CORE, CHAT_PERSONA_INSTRUCTION } from '../constants';
 import { Send, Paperclip, X, Lightbulb, Image as ImageIcon } from 'lucide-react';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import SmartTip from '../components/SmartTip';
@@ -11,7 +11,7 @@ import { useFeatureUsage } from '../hooks/useFeatureUsage';
 import TTSButton from '../components/TTSButton';
 
 const feature = FEATURES.find(f => f.pageType === 'chat')!;
-const SYSTEM_INSTRUCTION = "أنت 'عقل الروح التقنية'، مساعد ذكي ومتعدد الاستخدامات في تطبيق صحتك/كي، الذي صُمم برؤية من 'أحمد معروف'. مهمتك هي الإجابة على استفسارات المستخدمين بوضوح، وعمق، ولمسة شخصية. كن ودوداً، ومتعاوناً، ومبدعاً في ردودك. عرف عن نفسك دائمًا بأنك 'عقل الروح التقنية'.";
+const SYSTEM_INSTRUCTION = `${CHAT_PERSONA_INSTRUCTION}\n\n${SYSTEM_INSTRUCTION_CORE}`;
 
 type AspectRatio = '1:1' | '16:9' | '9:16';
 

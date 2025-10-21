@@ -31,6 +31,7 @@ import { Toaster } from 'react-hot-toast';
 import BottomNavBar from './components/BottomNavBar';
 import OnboardingGuide from './components/OnboardingGuide';
 import { playSound } from './services/soundService';
+import { getActiveChallenges } from './services/challengeService';
 
 
 const AppContent: React.FC = () => {
@@ -38,6 +39,8 @@ const AppContent: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const { isCameraOpen } = useCamera();
+  const [diaryIndicatorActive, setDiaryIndicatorActive] = useState(false);
+
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -48,6 +51,16 @@ const AppContent: React.FC = () => {
             setShowOnboarding(true);
         }
     }, 1500); // Simulate loading
+    
+    // Indicator logic
+    const lastBriefingDate = localStorage.getItem('lastBriefingShownDate');
+    const today = new Date().toDateString();
+    const isBriefingNew = lastBriefingDate !== today;
+    const activeChallenges = getActiveChallenges();
+    const hasActiveChallenge = activeChallenges.length > 0;
+
+    setDiaryIndicatorActive(isBriefingNew || hasActiveChallenge);
+
     return () => clearTimeout(timer);
   }, []);
   
@@ -63,7 +76,7 @@ const AppContent: React.FC = () => {
   const renderPage = () => {
     switch (currentPage.type) {
       case 'home':
-        return <HomePage navigateTo={navigateTo} />;
+        return <HomePage navigateTo={navigateTo} diaryIndicatorActive={diaryIndicatorActive} />;
       case 'imageAnalysis':
         return <ImageAnalysisPage navigateTo={navigateTo} />;
       case 'calorieCounter':
@@ -73,7 +86,7 @@ const AppContent: React.FC = () => {
         if (healthFeature) {
             return <SmartHealthPage feature={healthFeature} navigateTo={navigateTo} />;
         }
-        return <HomePage navigateTo={navigateTo} />; // Fallback
+        return <HomePage navigateTo={navigateTo} diaryIndicatorActive={diaryIndicatorActive}/>; // Fallback
       case 'pharmacy':
         return <PharmacyPage navigateTo={navigateTo} />;
       case 'healthDiary':
@@ -113,7 +126,7 @@ const AppContent: React.FC = () => {
         if(possibleFeature && possibleFeature.page.type === 'smartHealth') {
             return <SmartHealthPage feature={possibleFeature} navigateTo={navigateTo} />;
         }
-        return <HomePage navigateTo={navigateTo} />;
+        return <HomePage navigateTo={navigateTo} diaryIndicatorActive={diaryIndicatorActive} />;
     }
   };
   
@@ -126,7 +139,7 @@ const AppContent: React.FC = () => {
           <div className="pb-20"> {/* Padding for classic nav bar */}
               {renderPage()}
           </div>
-          {!isCameraOpen && <BottomNavBar currentPage={currentPage} navigateTo={navigateTo} />}
+          {!isCameraOpen && <BottomNavBar currentPage={currentPage} navigateTo={navigateTo} diaryIndicatorActive={diaryIndicatorActive} />}
            {showOnboarding && <OnboardingGuide onComplete={handleOnboardingComplete} />}
       </div>
   );

@@ -7,6 +7,7 @@ import { playSound } from '../services/soundService';
 interface FeatureCardProps {
   feature: Feature;
   navigateTo: NavigationProps['navigateTo'];
+  indicator?: React.ReactNode;
 }
 
 const colorClasses: { [key: string]: { bg: string, text: string, border: string, iconBg: string, darkBg: string, darkText: string, darkBorder: string } } = {
@@ -22,7 +23,7 @@ const colorClasses: { [key: string]: { bg: string, text: string, border: string,
   cyan: { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-200', iconBg: 'bg-cyan-500', darkBg: 'dark:bg-black', darkText: 'dark:text-cyan-300', darkBorder: 'dark:border-cyan-500/50' },
 };
 
-const FeatureCard: React.FC<FeatureCardProps> = ({ feature, navigateTo }) => {
+const FeatureCard: React.FC<FeatureCardProps> = ({ feature, navigateTo, indicator }) => {
   const { title, description, Icon, color, page } = feature;
   const colors = colorClasses[color] || colorClasses.teal;
   const { trackFeatureUsage } = useFeatureUsage();
@@ -36,8 +37,13 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ feature, navigateTo }) => {
   return (
     <div
       onClick={handleClick}
-      className={`w-full p-4 rounded-xl shadow-md cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 active:scale-95 ${colors.bg} ${colors.darkBg} border ${colors.border} ${colors.darkBorder}`}
+      className={`relative w-full p-4 rounded-xl shadow-md cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 active:scale-95 ${colors.bg} ${colors.darkBg} border ${colors.border} ${colors.darkBorder}`}
     >
+      {indicator && (
+        <div className="absolute top-2 left-2 rtl:left-auto rtl:right-2 w-6 h-6 bg-teal-500 text-white text-xs font-bold flex items-center justify-center rounded-full border-2 border-white dark:border-gray-800">
+            {indicator}
+        </div>
+      )}
       <div className="flex items-center space-x-4 rtl:space-x-reverse">
         <div className={`p-3 rounded-lg ${colors.iconBg}`}>
           <Icon className="w-7 h-7 text-white" />
