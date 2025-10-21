@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { NavigationProps, GroundingChunk } from '../types';
 import { callGeminiSearchApi } from '../services/geminiService';
 import PageHeader from '../components/PageHeader';
-import { FEATURES } from '../constants';
+import { FEATURES, SEARCH_SUGGESTIONS } from '../constants';
 import { Search, Sparkles, Link, BrainCircuit, Lightbulb } from 'lucide-react';
 import MarkdownRenderer from '../components/MarkdownRenderer';
+import { useFeatureUsage } from '../hooks/useFeatureUsage';
 
 
 const feature = FEATURES.find(f => f.pageType === 'globalSearch')!;
@@ -15,6 +16,25 @@ const GlobalSearchPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const [groundingChunks, setGroundingChunks] = useState<GroundingChunk[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const { getUsageSortedFeatures } = useFeatureUsage();
+
+    const suggestions = useMemo(() => {
+        const sortedFeatures = getUsageSortedFeatures(FEATURES);
+        
+        const topFeatureSuggestions = sortedFeatures
+            .filter(f => SEARCH_SUGGESTIONS[f.pageType]) 
+            .map(f => SEARCH_SUGGESTIONS[f.pageType]!) 
+            .flat();
+
+        const allSuggestions = [
+            ...topFeatureSuggestions,
+            ...(SEARCH_SUGGESTIONS.globalSearch || [])
+        ];
+
+        const uniqueSuggestions = [...new Set(allSuggestions)];
+        const shuffled = uniqueSuggestions.sort(() => 0.5 - Math.random());
+        return shuffled.slice(0, 3);
+    }, [getUsageSortedFeatures]);
     
 
     const handleSearch = async (searchText = input) => {
@@ -45,18 +65,27 @@ const GlobalSearchPage: React.FC<NavigationProps> = ({ navigateTo }) => {
 
         const appSearchTerms = ["صحتك/كي", "aihealthq", "تطبيقصحتك/كي", "صحتككي"];
         if (appSearchTerms.includes(normalizedSearchText.replace(/\s/g, ''))) {
-            const appInfo = `### عن تطبيق "صحتك/كي" (AiHealthQ)
+            const appInfo = `### عن تطبيق "صحتك/كي" (AiHealthQ): مستشارك الذكي للحياة العصرية
 
-**صحتك/كي** هو تطبيق ذكي ومتكامل للحياة والصحة، مصمم ليكون رفيقك اليومي نحو حياة أفضل. يعتمد التطبيق على أحدث تقنيات الذكاء الاصطناعي والتحليل البصري ليقدم لك تجربة فريدة ومخصصة.
+**"صحتك/كي"** هو أكثر من مجرد تطبيق صحي؛ إنه منصة حياة متكاملة مصممة لتكون رفيقك اليومي الذكي في كل جوانب حياتك. باستخدام قوة الذكاء الاصطناعي المتقدم والكاميرا الذكية، نقدم لك استشارات مخصصة وحلولاً فورية تجعل حياتك أسهل وأفضل.
 
-#### الميزات الرئيسية:
-- **الكاميرا الذكية:** حلل الأطعمة، الأدوية، النباتات، ومنتجات التجميل بمجرد التقاط صورة.
-- **مراكز استشارية متخصصة:** احصل على نصائح الخبراء في مجالات الجمال، الديكور، الطهي، وتنظيم الجداول.
-- **مستشار الطهي والسعرات:** ابتكر وصفات صحية من المكونات المتاحة لديك وحلل قيمتها الغذائية.
-- **يومياتي الصحية:** سجل أنشطتك وتتبع تقدمك بسهولة، واحصل على تحليل أسبوعي ذكي.
-- **عقل الروح التقنية:** دردش مع مساعدك الذكي واحصل على إجابات فورية لأي سؤال يخطر ببالك.
+#### انطلق في رحلتك مع مراكزنا الاستشارية المتخصصة:
 
-يهدف **صحتك/كي** إلى تمكينك من اتخاذ قرارات صحية أفضل من خلال جعل المعلومات والنصائح في متناول يدك بطريقة سهلة وتفاعلية.
+- **📸 الكاميرا الذكية:** بوابتك للمعرفة الفورية. حلل أي شيء من حولك، من الأطعمة والأدوية إلى النباتات ومنتجات التجميل.
+- **🏋️‍♂️ المستشار الرياضي:** احصل على خطط تمارين مخصصة لأهدافك، سواء كانت فقدان الوزن، بناء العضلات، أو تحسين الأداء.
+- **🥗 مستشار الطهي والسعرات:** ابتكر وصفات صحية من مكوناتك، وحلل وجباتك بصرياً لتقدير قيمتها الغذائية.
+- **💄 مستشار الجمال:** اكتشف روتين العناية المثالي لبشرتك وشعرك، وحلل مكونات المنتجات، واحصل على إلهام للمكياج.
+- **🎮 مستشار الألعاب والترفيه:** حسّن أداءك كلاعب بنصائح صحية وذهنية، وتعرف على أحدث الألعاب والعتاد.
+- **💼 المستشار المالي والمهني:** استعد لمقابلات العمل، حلل سيرتك الذاتية، واحصل على خطط ذكية لإدارة ميزانيتك.
+- **🚗 مستشار السيارات والتكنولوجيا:** شخص أعطال سيارتك من خلال صورة، واحصل على إرشادات لاختيار أفضل الأجهزة التقنية.
+- **🏠 مستشار الديكور والنباتات:** استلهم أفكاراً لمنزلك، واعتنِ بنباتاتك مع طبيب النباتات الذكي.
+- **📓 يومياتي الذكية:** سجل أنشطتك وتتبع تقدمك، ودع الذكاء الاصطناعي يحلل أسبوعك ويقدم لك رؤى قيمة.
+- **🧠 عقل الروح التقنية:** مساعدك الشخصي للدردشة والبحث. اسأل عن أي شيء، أو اطلب منه أن يرسم لك صورة!
+
+**رؤيتنا** هي تمكينك من خلال التكنولوجيا، ووضع خبير في كل جانب من جوانب حياتك بين يديك. "صحتك/كي" هو شريكك في رحلة نحو حياة أكثر صحة، ذكاءً، وتنظيماً.
+
+---
+*تم تطوير هذا التطبيق بناءً على فكرة ورؤية المالك والمؤسس: **أحمد معروف**.*
 `;
             setResult(appInfo);
             setIsLoading(false);
@@ -121,15 +150,15 @@ const GlobalSearchPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                                 جرب أن تسأل:
                              </h3>
                              <div className="flex flex-wrap justify-center gap-2">
-                                <button onClick={() => handleSearch('ما هي فوائد الأفوكادو؟')} className="px-3 py-1.5 bg-indigo-50 dark:bg-black text-indigo-700 dark:text-indigo-300 rounded-full text-sm border border-indigo-200 dark:border-indigo-500/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition">
-                                    ما هي فوائد الأفوكادو؟
-                                </button>
-                                <button onClick={() => handleSearch('أفضل التمارين لتقوية الظهر')} className="px-3 py-1.5 bg-indigo-50 dark:bg-black text-indigo-700 dark:text-indigo-300 rounded-full text-sm border border-indigo-200 dark:border-indigo-500/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition">
-                                    أفضل التمارين لتقوية الظهر
-                                </button>
-                                <button onClick={() => handleSearch('من هو مخترع الإنترنت؟')} className="px-3 py-1.5 bg-indigo-50 dark:bg-black text-indigo-700 dark:text-indigo-300 rounded-full text-sm border border-indigo-200 dark:border-indigo-500/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition">
-                                    من هو مخترع الإنترنت؟
-                                </button>
+                                {suggestions.map((suggestion, index) => (
+                                    <button 
+                                        key={index} 
+                                        onClick={() => handleSearch(suggestion)} 
+                                        className="px-3 py-1.5 bg-indigo-50 dark:bg-black text-indigo-700 dark:text-indigo-300 rounded-full text-sm border border-indigo-200 dark:border-indigo-500/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition"
+                                    >
+                                        {suggestion}
+                                    </button>
+                                ))}
                              </div>
                         </div>
                     </div>
