@@ -1,16 +1,17 @@
 import React from 'react';
 import { Page, NavigationProps } from '../types';
-import { Home, Camera, NotebookText, MessageCircle, Search, BrainCircuit } from 'lucide-react';
+import { Home, Camera, NotebookText, BrainCircuit, Search } from 'lucide-react';
 import { useFeatureUsage } from '../hooks/useFeatureUsage';
+import { playSound } from '../services/soundService';
 
 interface BottomNavBarProps extends NavigationProps {
   currentPage: Page;
 }
 
-const NAV_ITEMS = [
+const navItems = [
   { page: { type: 'home' } as Page, pageType: 'home', Icon: Home, label: 'الرئيسية' },
-  { page: { type: 'imageAnalysis' } as Page, pageType: 'imageAnalysis', Icon: Camera, label: 'الكاميرا' },
   { page: { type: 'healthDiary' } as Page, pageType: 'healthDiary', Icon: NotebookText, label: 'يومياتي' },
+  { page: { type: 'imageAnalysis' } as Page, pageType: 'imageAnalysis', Icon: Camera, label: 'الكاميرا' },
   { page: { type: 'chat' } as Page, pageType: 'chat', Icon: BrainCircuit, label: 'الدردشة' },
   { page: { type: 'globalSearch' } as Page, pageType: 'globalSearch', Icon: Search, label: 'البحث' },
 ];
@@ -19,35 +20,29 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ currentPage, navigateTo }) 
   const { trackFeatureUsage } = useFeatureUsage();
 
   const handleNavigation = (page: Page, pageType: string) => {
+    playSound('tap');
     trackFeatureUsage(pageType);
     navigateTo(page);
   };
 
-  const isCurrentPage = (itemPage: Page): boolean => {
-    if (currentPage.type === 'smartHealth' && 'pageType' in itemPage) {
-        return currentPage.pageType === (itemPage as any).pageType;
-    }
-    return currentPage.type === itemPage.type;
+  const isCurrentPage = (itemPageType: string): boolean => {
+    return currentPage.type === itemPageType;
   };
-    
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-black border-t border-gray-200 dark:border-gray-800 shadow-t-lg z-50">
-      <div className="flex justify-around max-w-4xl mx-auto">
-        {NAV_ITEMS.map(({ page, pageType, Icon, label }) => {
-          const isActive = isCurrentPage(page);
+    <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white/90 dark:bg-black/90 backdrop-blur-sm border-t border-gray-200 dark:border-gray-800 z-50">
+      <div className="flex justify-around items-center h-full max-w-lg mx-auto">
+        {navItems.map(({ page, pageType, Icon, label }) => {
+          const isActive = isCurrentPage(pageType);
           return (
             <button
-              key={page.type}
+              key={pageType}
               onClick={() => handleNavigation(page, pageType)}
-              className={`flex flex-col items-center justify-center w-full pt-2 pb-1 text-xs transition-colors duration-200 ${
-                isActive
-                  ? 'text-teal-500 dark:text-teal-400'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-teal-500 dark:hover:text-teal-400'
-              }`}
+              className={`flex flex-col items-center justify-center h-full w-full text-xs transition-colors duration-200
+                ${isActive ? 'text-teal-500 dark:text-teal-400 font-bold' : 'text-gray-500 dark:text-gray-400 hover:text-teal-500'}`}
             >
-              <Icon className="w-6 h-6 mb-1" />
+              <Icon className="w-6 h-6 mb-0.5" />
               <span>{label}</span>
-               {isActive && <div className="w-8 h-1 bg-teal-500 rounded-full mt-1"></div>}
             </button>
           );
         })}

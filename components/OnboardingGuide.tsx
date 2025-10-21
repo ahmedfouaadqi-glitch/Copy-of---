@@ -78,7 +78,6 @@ const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ onComplete }) => {
           )}
         </button>
       </div>
-       {/* FIX: Replaced non-standard <style jsx> with a standard <style> tag for CSS animations. */}
        <style>{`
         @keyframes fade-in {
           from { opacity: 0; }

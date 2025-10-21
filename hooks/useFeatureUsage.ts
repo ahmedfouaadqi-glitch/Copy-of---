@@ -1,10 +1,15 @@
 import { useCallback } from 'react';
-import { Feature } from '../types';
+import { Feature, PageType } from '../types';
 
 const USAGE_STATS_KEY = 'featureUsageStats';
 
+interface UsageStat {
+  count: number;
+  lastVisited: number;
+}
+
 interface UsageStats {
-  [key: string]: number;
+  [key: string]: UsageStat;
 }
 
 export const useFeatureUsage = () => {
@@ -19,19 +24,44 @@ export const useFeatureUsage = () => {
 
   const trackFeatureUsage = useCallback((pageType: string) => {
     const stats = getUsageStats();
-    stats[pageType] = (stats[pageType] || 0) + 1;
+    const existing = stats[pageType] || { count: 0, lastVisited: 0 };
+    stats[pageType] = { 
+      count: existing.count + 1,
+      lastVisited: Date.now() 
+    };
     localStorage.setItem(USAGE_STATS_KEY, JSON.stringify(stats));
   }, [getUsageStats]);
 
   const getUsageSortedFeatures = useCallback((features: Feature[]): Feature[] => {
     const stats = getUsageStats();
     const sortedFeatures = [...features].sort((a, b) => {
-      const usageA = stats[a.pageType] || 0;
-      const usageB = stats[b.pageType] || 0;
+      const usageA = stats[a.pageType]?.count || 0;
+      const usageB = stats[b.pageType]?.count || 0;
       return usageB - usageA;
     });
     return sortedFeatures;
   }, [getUsageStats]);
 
-  return { trackFeatureUsage, getUsageSortedFeatures };
+  const getLastVisitedFeature = useCallback((): PageType | null => {
+    const stats = getUsageStats();
+    let lastVisited: { pageType: PageType | null; timestamp: number } = { pageType: null, timestamp: 0 };
+    
+    for (const key in stats) {
+        const pageType = key as PageType;
+        // Exclude core navigation pages from being considered as "last feature"
+        if (['home', 'chat', 'imageAnalysis', 'globalSearch', 'healthDiary'].includes(pageType)) continue;
+
+        if (stats[pageType].lastVisited > lastVisited.timestamp) {
+            lastVisited = { pageType, timestamp: stats[pageType].lastVisited };
+        }
+    }
+
+    // Only consider it recent if visited within the last 5 minutes
+    if (lastVisited.pageType && (Date.now() - lastVisited.timestamp < 5 * 60 * 1000)) {
+        return lastVisited.pageType;
+    }
+    return null;
+  }, [getUsageStats]);
+
+  return { trackFeatureUsage, getUsageSortedFeatures, getLastVisitedFeature };
 };

@@ -4,6 +4,7 @@ import { FEATURES } from '../constants';
 import FeatureCard from '../components/FeatureCard';
 import { HeartPulse } from 'lucide-react';
 import { useFeatureUsage } from '../hooks/useFeatureUsage';
+import MorningBriefing from '../components/MorningBriefing';
 
 const HomePage: React.FC<NavigationProps> = ({ navigateTo }) => {
   const { getUsageSortedFeatures } = useFeatureUsage();
@@ -19,6 +20,7 @@ const HomePage: React.FC<NavigationProps> = ({ navigateTo }) => {
         </div>
       </header>
       <main className="p-4 flex-grow">
+        <MorningBriefing />
         <p className="text-center text-gray-600 dark:text-gray-400 mb-6">تطبيق الحياة</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
           {sortedFeatures.map(feature => (

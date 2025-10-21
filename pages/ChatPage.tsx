@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { NavigationProps, ChatMessage } from '../types';
+import { NavigationProps, ChatMessage, PageType } from '../types';
 import { callGeminiChatApi, generateImage } from '../services/geminiService';
 import PageHeader from '../components/PageHeader';
 import { FEATURES } from '../constants';
-import { Send, Paperclip, X } from 'lucide-react';
+import { Send, Paperclip, X, Lightbulb } from 'lucide-react';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import SmartTip from '../components/SmartTip';
 import { playSound } from '../services/soundService';
+import { useFeatureUsage } from '../hooks/useFeatureUsage';
 
 const feature = FEATURES.find(f => f.pageType === 'chat')!;
 const SYSTEM_INSTRUCTION = "أنت 'عقل الروح التقنية'، مساعد ذكي ومتعدد الاستخدامات في تطبيق صحتك/كي. مهمتك هي الإجابة على استفسارات المستخدمين بوضوح ودقة. كن ودوداً ومتعاوناً وشخصياً.";
@@ -16,28 +17,38 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
   const [input, setInput] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [contextualSuggestion, setContextualSuggestion] = useState<{ text: string, prompt: string } | null>(null);
   
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const { getLastVisitedFeature } = useFeatureUsage();
   
-  // Greeting logic
+  // Greeting and history logic
   useEffect(() => {
     const storedMessages = JSON.parse(localStorage.getItem('chatHistory') || '[]') as ChatMessage[];
     if (storedMessages.length === 0) {
-      const getGreeting = () => {
-        const hour = new Date().getHours();
-        if (hour < 12) return 'صباح الخير';
-        if (hour < 18) return 'مساء الخير';
-        return 'مساء الخير';
-      };
       const initialMessage: ChatMessage = {
         role: 'model',
-        content: `**${getGreeting()}!** أنا 'عقل الروح التقنية'.\nمرحباً بك، اسالني عن اي شيء يخطر ببالك.`
+        content: `**مرحباً أحمد!** أنا 'عقل الروح التقنية'.\nكيف يمكنني مساعدتك اليوم؟`
       };
       setMessages([initialMessage]);
     } else {
       setMessages(storedMessages);
     }
   }, []);
+
+  // Contextual suggestion logic
+  useEffect(() => {
+    const lastFeature = getLastVisitedFeature();
+    if (lastFeature) {
+        const featureDetails = FEATURES.find(f => f.pageType === lastFeature);
+        if (featureDetails) {
+            setContextualSuggestion({
+                text: `هل تريد مناقشة ${featureDetails.title}؟`,
+                prompt: `لقد كنت للتو أستخدم ${featureDetails.title}. هل يمكنك مساعدتي فيه؟`
+            });
+        }
+    }
+  }, [getLastVisitedFeature]);
 
   useEffect(() => {
     localStorage.setItem('chatHistory', JSON.stringify(messages));
@@ -46,6 +57,9 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
 
   const handleSend = useCallback(async (text: string, attachedImage: string | null = image) => {
     if ((!text.trim() && !attachedImage) || isLoading) return;
+
+    // Clear suggestion once user interacts
+    if (contextualSuggestion) setContextualSuggestion(null);
 
     const userMessage: ChatMessage = { role: 'user', content: text, imageUrl: attachedImage };
     const newMessages = [...messages, userMessage];
@@ -77,8 +91,14 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, image, isLoading]);
+  }, [messages, image, isLoading, contextualSuggestion]);
   
+  const handleSuggestionClick = () => {
+    if (contextualSuggestion) {
+        handleSend(contextualSuggestion.prompt);
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -101,13 +121,13 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-black">
       <PageHeader navigateTo={navigateTo} title={feature.title} Icon={feature.Icon} color={feature.color} />
       
-      <main className="flex-1 overflow-y-auto p-4 space-y-4">
+      <main className="flex-1 overflow-y-auto p-4 space-y-4 bg-[url('data:image/svg+xml,%3Csvg%20width=%276%27%20height=%276%27%20viewBox=%270%200%206%206%27%20xmlns=%27http://www.w3.org/2000/svg%27%3E%3Cg%20fill=%27%239C92AC%27%20fill-opacity=%270.07%27%20fill-rule=%27evenodd%27%3E%3Cpath%20d=%27M5%200h1L0%206V5zM6%205v1H5z%27/%3E%3C/g%3E%3C/svg%3E')]">
         <SmartTip
             tipId="image_generation_tip"
             message="هل تعلم؟ يمكنك أن تطلب مني رسم أي شيء يخطر ببالك! فقط ابدأ رسالتك بكلمة 'ارسم' أو 'صمم'."
         />
         {messages.map((msg, index) => (
-          <div key={index} className={`flex items-end gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+          <div key={index} className={`flex items-end gap-2 animate-message-in ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-md lg:max-w-xl p-3 rounded-2xl shadow-sm ${msg.role === 'user' ? 'bg-blue-500 text-white rounded-br-none' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-bl-none'}`}>
               {msg.imageUrl && <img src={msg.imageUrl} alt="chat content" className="rounded-lg mb-2 max-h-60" />}
               <MarkdownRenderer content={msg.content} />
@@ -116,18 +136,25 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
         ))}
 
         {isLoading && (
-          <div className="flex items-end gap-2 justify-start">
+          <div className="flex items-end gap-2 justify-start animate-message-in">
             <div className="max-w-lg p-3 rounded-2xl shadow-sm bg-white dark:bg-gray-800 rounded-bl-none">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
-                <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse delay-75"></div>
-                <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse delay-150"></div>
+                 <p className="text-sm text-gray-500 dark:text-gray-400">عقل الروح يفكر...</p>
               </div>
             </div>
           </div>
         )}
         <div ref={chatEndRef} />
       </main>
+      
+       {contextualSuggestion && (
+         <div className="px-4 py-2 bg-white dark:bg-black border-t border-b border-gray-200 dark:border-gray-800 flex justify-center">
+            <button onClick={handleSuggestionClick} className="px-3 py-1.5 bg-indigo-50 dark:bg-black text-indigo-700 dark:text-indigo-300 rounded-full text-sm border border-indigo-200 dark:border-indigo-500/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition flex items-center gap-2">
+                 <Lightbulb size={16} />
+                 {contextualSuggestion.text}
+            </button>
+         </div>
+       )}
 
       <footer className="p-4 bg-white dark:bg-black border-t border-gray-200 dark:border-gray-800">
         <div className="max-w-4xl mx-auto">
@@ -160,6 +187,15 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
             </div>
         </div>
       </footer>
+      <style>{`
+          @keyframes message-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .animate-message-in {
+            animation: message-in 0.4s ease-out forwards;
+          }
+      `}</style>
     </div>
   );
 };

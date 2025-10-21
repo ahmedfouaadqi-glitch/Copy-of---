@@ -123,7 +123,7 @@ const HealthDiaryPage: React.FC<NavigationProps> = ({ navigateTo }) => {
 
     return (
         <div className="bg-gray-50 dark:bg-black min-h-screen">
-            <PageHeader navigateTo={navigateTo} title="يومياتي الصحية" Icon={NotebookText} color="purple" />
+            <PageHeader navigateTo={navigateTo} title="مركز مستشار يومياتي" Icon={NotebookText} color="purple" />
             <main className="p-4">
                  <div className="bg-white dark:bg-black p-4 rounded-lg shadow-md mb-6 border border-gray-200 dark:border-gray-800">
                     <div className="flex justify-between items-center mb-2">

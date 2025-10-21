@@ -1,6 +1,5 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-// FIX: Removed .tsx extension from App import for standard module resolution.
 import App from './App';
 
 const rootElement = document.getElementById('root');
@@ -11,6 +10,7 @@ if (!rootElement) {
 // Register Service Worker for PWA capabilities
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
+    // FIX: Corrected service worker registration syntax.
     navigator.serviceWorker.register('/sw.js').then(registration => {
       console.log('SW registered: ', registration);
     }).catch(registrationError => {

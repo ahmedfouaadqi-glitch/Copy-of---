@@ -1,18 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { NavigationProps, VisualFoodAnalysis } from '../types';
+import { NavigationProps, VisualFoodAnalysis, PageType } from '../types';
 import { callGeminiApi, callGeminiVisualJsonApi } from '../services/geminiService';
 import { addDiaryEntry } from '../services/diaryService';
+import { addItemToShoppingList } from '../services/shoppingListService';
+import { addInspiration } from '../services/inspirationService';
 import PageHeader from '../components/PageHeader';
-import { UtensilsCrossed, Sparkles, ChefHat, CheckCircle, Info, X, Camera, Edit2, Save } from 'lucide-react';
+import { UtensilsCrossed, Sparkles, ChefHat, CheckCircle, Info, X, Camera, Edit2, Save, ShoppingCart, Share2 } from 'lucide-react';
 import { FEATURES } from '../constants';
 import Feedback from '../components/Feedback';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { useAnalysis } from '../context/AnalysisContext';
 import FollowUpChat from '../components/FollowUpChat';
 import MediaInput from '../components/MediaInput';
+import toast from 'react-hot-toast';
 
 
 const feature = FEATURES.find(f => f.pageType === 'calorieCounter')!;
+const SHOPPING_LIST_HEADER = "🛍️ قائمة التسوق";
 
 type Mode = 'calories' | 'recipe' | 'visual';
 
@@ -20,6 +24,9 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const [mode, setMode] = useState<Mode>('calories');
     const [input, setInput] = useState('');
     const [result, setResult] = useState('');
+    const [mainResult, setMainResult] = useState('');
+    const [shoppingListItems, setShoppingListItems] = useState<string[]>([]);
+    const [addedItems, setAddedItems] = useState<string[]>([]);
     const [analysisResult, setAnalysisResult] = useState<VisualFoodAnalysis | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -32,7 +39,6 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const [initialUserQuery, setInitialUserQuery] = useState('');
     const [showContextBanner, setShowContextBanner] = useState(false);
 
-    // State for correction loop
     const [isEditingWeight, setIsEditingWeight] = useState(false);
     const [correctedWeight, setCorrectedWeight] = useState('');
 
@@ -57,6 +63,9 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
             setShowContextBanner(false);
         }
         setResult('');
+        setMainResult('');
+        setShoppingListItems([]);
+        setAddedItems([]);
         setAnalysisResult(null);
         setError(null);
         setResponseId(null);
@@ -90,12 +99,10 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
             userCorrection: parseFloat(correctedWeight),
             foodName: analysisResult.foodName,
         };
-        // In a real app, this would be sent to a backend. For now, log to localStorage.
         const corrections = JSON.parse(localStorage.getItem('visual_corrections') || '[]');
         corrections.push(correctionData);
         localStorage.setItem('visual_corrections', JSON.stringify(corrections));
         
-        // Update the displayed result with the corrected weight
         setAnalysisResult(prev => prev ? { ...prev, estimatedWeight: parseFloat(correctedWeight) } : null);
         setIsEditingWeight(false);
     };
@@ -122,6 +129,29 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
             details: details
         });
         setIsAddedToDiary(true);
+        toast.success('تمت الإضافة إلى يومياتك بنجاح!');
+    };
+    
+    const handleAddToShoppingList = (item: string) => {
+        addItemToShoppingList({
+            id: `item-${Date.now()}-${Math.random()}`,
+            name: item,
+            relatedFeature: 'calorieCounter' as PageType,
+            isChecked: false,
+        });
+        setAddedItems(prev => [...prev, item]);
+        toast.success(`تمت إضافة "${item}" إلى قائمة التسوق!`);
+    };
+
+    const handleShareInspiration = () => {
+        if (mode === 'recipe' && result) {
+            addInspiration({
+                type: 'recipe',
+                title: `وصفة من مكونات: ${input}`,
+                content: result,
+            });
+            toast.success('تمت مشاركة وصفتك مع المجتمع!');
+        }
     };
 
 
@@ -182,7 +212,10 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                     1.  **اسم الوصفة المقترح**
                     2.  **المكونات**
                     3.  **طريقة التحضير**
-                    4.  **نصيحة الطاهي**`;
+                    4.  **نصيحة الطاهي**
+                    
+                    ---
+                    **هام:** في النهاية، تحت عنوان "**${SHOPPING_LIST_HEADER}**"، ضع قائمة بكل مكون تحتاجه لهذه الوصفة، كل مكون في سطر منفصل.`;
                 }
                 const imagePayload = localImage ? {
                     mimeType: localImage.match(/data:(.*);base64,/)?.[1] || 'image/jpeg',
@@ -191,6 +224,17 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
 
                 const apiResult = await callGeminiApi(prompt, imagePayload ? [imagePayload] : undefined);
                 setResult(apiResult);
+                
+                if (apiResult.includes(SHOPPING_LIST_HEADER)) {
+                    const parts = apiResult.split(SHOPPING_LIST_HEADER);
+                    setMainResult(parts[0]);
+                    const listPart = parts[1].split('\n').filter(line => line.trim() !== '' && !line.includes('قائمة التسوق'));
+                    setShoppingListItems(listPart.map(item => item.replace(/[-*]\s*/, '').trim()));
+                } else {
+                    setMainResult(apiResult);
+                    setShoppingListItems([]);
+                }
+                
                 setResponseId(`chef-${Date.now()}`);
              }
         } catch (e) {
@@ -327,10 +371,34 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                             {mode === 'calories' ? 'التحليل الغذائي' : mode === 'visual' ? 'التقدير البصري' : 'وصفتك المقترحة'}
                         </h3>
                         
-                        {result && <MarkdownRenderer content={result} />}
+                        {mainResult && <MarkdownRenderer content={mainResult} />}
+                        {!mainResult && result && <MarkdownRenderer content={result} />}
                         {analysisResult && renderAnalysisResult()}
 
-                        <div className="mt-4 text-center">
+                        {shoppingListItems.length > 0 && (
+                            <div className="mt-4 pt-3 border-t border-orange-200 dark:border-orange-500/50">
+                                <h4 className="font-bold mb-2 text-orange-800 dark:text-orange-300 flex items-center gap-2">
+                                    <ShoppingCart size={18} />
+                                    قائمة التسوق للوصفة
+                                </h4>
+                                <div className="space-y-2">
+                                    {shoppingListItems.map((item, index) => (
+                                        <div key={index} className="flex items-center justify-between bg-white dark:bg-black p-2 rounded-md border dark:border-gray-800">
+                                            <span className="text-sm">{item}</span>
+                                            <button 
+                                                onClick={() => handleAddToShoppingList(item)} 
+                                                disabled={addedItems.includes(item)}
+                                                className="text-xs px-2 py-1 rounded-md transition-colors flex items-center gap-1 disabled:opacity-60 bg-green-100 text-green-800 dark:bg-black dark:border dark:border-green-500/50 dark:text-green-300"
+                                            >
+                                                {addedItems.includes(item) ? <CheckCircle size={14} /> : '+ إضافة'}
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-center">
                             <button
                                 onClick={handleAddToDiary}
                                 disabled={isAddedToDiary}
@@ -338,6 +406,14 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                             >
                                 {isAddedToDiary ? <><CheckCircle size={18} /> تمت الإضافة لليوميات</> : '📌 إضافة لليوميات'}
                             </button>
+                            {mode === 'recipe' && (
+                                <button
+                                    onClick={handleShareInspiration}
+                                    className="px-4 py-2 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2 bg-pink-100 text-pink-800 hover:bg-pink-200 dark:bg-black dark:border dark:border-pink-500/50 dark:text-pink-300"
+                                >
+                                    <Share2 size={16} /> مشاركة للإلهام
+                                </button>
+                            )}
                         </div>
                         
                         {responseId && <Feedback responseId={responseId} />}

@@ -1,6 +1,6 @@
 import { LucideIcon } from 'lucide-react';
 
-export type PageType = 'home' | 'imageAnalysis' | 'calorieCounter' | 'smartHealth' | 'pharmacy' | 'healthDiary' | 'chat' | 'myPlants' | 'globalSearch' | 'schedule' | 'beauty' | 'decorations' | 'sportsTrainer' | 'gaming' | 'financial' | 'auto';
+export type PageType = 'home' | 'imageAnalysis' | 'calorieCounter' | 'smartHealth' | 'pharmacy' | 'healthDiary' | 'chat' | 'myPlants' | 'globalSearch' | 'schedule' | 'beauty' | 'decorations' | 'sportsTrainer' | 'gaming' | 'financial' | 'auto' | 'shoppingList' | 'challenges' | 'communityInspirations' | 'dietPlan' | 'favoriteMovies';
 
 export type Page =
   | { type: 'home' }
@@ -12,8 +12,12 @@ export type Page =
   | { type: 'myPlants' }
   | { type: 'globalSearch' }
   | { type: 'smartHealth', pageType: 'beauty' | 'decorations' | 'schedule' | 'gaming' | 'financial' | 'auto' }
-  | { type: 'schedule' }
-  | { type: 'sportsTrainer' };
+  | { type: 'sportsTrainer' }
+  | { type: 'shoppingList' }
+  | { type: 'challenges' }
+  | { type: 'communityInspirations' }
+  | { type: 'dietPlan' }
+  | { type: 'favoriteMovies' };
 
 
 export interface NavigationProps {
@@ -112,4 +116,61 @@ export interface VisualFoodAnalysis {
     carbohydrates: number;
     fats: number;
     advice: string;
+}
+
+export interface ShoppingListItem {
+    id: string;
+    name: string;
+    relatedFeature: PageType;
+    isChecked: boolean;
+}
+
+export interface Challenge {
+    id: string;
+    title: string;
+    description: string;
+    icon: string;
+    goal: number; // e.g., 7 for 7 days
+    unit: string; // e.g., 'days'
+    relatedDiaryType: DiaryEntry['type'];
+    relatedDiaryTitle?: string; // e.g., 'شرب الماء'
+}
+
+export interface UserChallenge extends Challenge {
+    startDate: number;
+    progress: number;
+}
+
+export interface InspirationItem {
+    id: string;
+    timestamp: number;
+    type: 'recipe' | 'workout';
+    title: string;
+    content: string | WorkoutPlan; // Can be markdown for recipe or a WorkoutPlan object
+    sourceUser: string; // Anonymous user name
+}
+
+export interface DietMeal {
+    meal: string;
+    description: string;
+    calories: number;
+}
+
+export interface DietDay {
+    day: string;
+    meals: DietMeal[];
+    dailyTotalCalories: number;
+    dailyTip: string;
+}
+
+export interface DietPlan {
+    planTitle: string;
+    dailyPlan: DietDay[];
+}
+
+export interface FavoriteMovie {
+    id: string;
+    title: string;
+    details: string;
+    addedDate: number;
 }

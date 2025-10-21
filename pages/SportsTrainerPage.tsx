@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { NavigationProps, WorkoutPlan, WorkoutDay, WorkoutExercise } from '../types';
 import { callGeminiJsonApi } from '../services/geminiService';
+import { addInspiration } from '../services/inspirationService';
 import PageHeader from '../components/PageHeader';
-import { Dumbbell, Sparkles, ArrowLeft, Trash2, Edit, Save, CheckCircle } from 'lucide-react';
+import { Dumbbell, Sparkles, ArrowLeft, Trash2, Edit, Save, Share2 } from 'lucide-react';
 import { FEATURES } from '../constants';
 import { Type } from '@google/genai';
+import toast from 'react-hot-toast';
 
 const feature = FEATURES.find(f => f.pageType === 'sportsTrainer')!;
 const PLAN_STORAGE_KEY = 'sportsTrainerPlan';
@@ -128,10 +130,21 @@ const SportsTrainerPage: React.FC<NavigationProps> = ({ navigateTo }) => {
         corrections.push(correctionData);
         localStorage.setItem('plan_corrections', JSON.stringify(corrections));
         
-        // Save the user's version as the current plan
         localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(editedPlan));
         setOriginalPlan(editedPlan);
         setIsEditing(false);
+        toast.success('تم حفظ تعديلاتك على الخطة!');
+    };
+    
+    const handleShareInspiration = () => {
+        if (originalPlan) {
+            addInspiration({
+                type: 'workout',
+                title: `خطة ${formState.goal} للمستوى ${formState.level}`,
+                content: originalPlan,
+            });
+            toast.success('تمت مشاركة خطتك مع المجتمع!');
+        }
     };
 
 
@@ -184,16 +197,21 @@ const SportsTrainerPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     
     const renderPlanView = () => (
       <div>
-        <div className="bg-white dark:bg-black p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-800 mb-4 flex justify-between items-center">
+        <div className="bg-white dark:bg-black p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-800 mb-4 flex justify-between items-center flex-wrap gap-2">
             <div>
                 <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-1">خطتك الأسبوعية</h2>
                 <p className="text-sm text-gray-600 dark:text-gray-400">هذه هي خطتك المخصصة. اضغط على أي يوم لعرض التمارين.</p>
             </div>
-            {!isEditing && (
-                 <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 text-sm font-semibold rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">
-                    <Edit size={16} /> تعديل
+            <div className="flex gap-2">
+                 {!isEditing && (
+                     <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 text-sm font-semibold rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <Edit size={16} /> تعديل
+                    </button>
+                )}
+                 <button onClick={handleShareInspiration} className="flex items-center gap-2 px-3 py-2 bg-pink-100 dark:bg-black text-pink-700 dark:text-pink-300 text-sm font-semibold rounded-lg hover:bg-pink-200 dark:hover:bg-pink-900/50 border border-pink-200 dark:border-pink-500/50">
+                    <Share2 size={16} /> مشاركة
                 </button>
-            )}
+            </div>
         </div>
         <div className="space-y-3">
         {editedPlan?.weeklyPlan.map((day, index) => (
@@ -228,15 +246,17 @@ const SportsTrainerPage: React.FC<NavigationProps> = ({ navigateTo }) => {
             </div>
         ))}
         </div>
-         {isEditing ? (
-            <button onClick={saveChanges} className="w-full mt-6 p-3 bg-green-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-green-600 transition active:scale-95">
-                <Save size={20} /> حفظ التغييرات
-            </button>
-         ) : (
-            <button onClick={clearPlan} className="w-full mt-6 p-3 bg-red-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-red-600 transition active:scale-95">
-                <Trash2 size={20} /> مسح الخطة والبدء من جديد
-            </button>
-         )}
+         <div className="flex flex-col sm:flex-row gap-2 mt-6">
+             {isEditing ? (
+                <button onClick={saveChanges} className="w-full p-3 bg-green-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-green-600 transition active:scale-95">
+                    <Save size={20} /> حفظ التغييرات
+                </button>
+             ) : (
+                <button onClick={clearPlan} className="w-full p-3 bg-red-500/90 text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-red-500 transition active:scale-95">
+                    <Trash2 size={20} /> مسح الخطة والبدء من جديد
+                </button>
+             )}
+        </div>
       </div>
     );
 

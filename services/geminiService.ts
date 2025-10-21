@@ -210,6 +210,72 @@ export const analyzeDiaryEntries = async (): Promise<string> => {
 };
 
 /**
+ * Generates a proactive morning briefing based on yesterday's diary entries.
+ * @returns A string containing the morning briefing.
+ */
+export const generateMorningBriefing = async (): Promise<string> => {
+    try {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const entries = getDiaryEntries(yesterday);
+
+        if (entries.length === 0) {
+            return "**صباح الخير أحمد!** يوم جديد هو فرصة جديدة. لم تسجل أي أنشطة بالأمس، ما رأيك أن تبدأ اليوم بتسجيل وجبة فطور صحية أو نشاط بسيط؟ أتمنى لك يوماً رائعاً!";
+        }
+        
+        const formattedData = entries.map(e => `- ${e.title}: ${e.details}`).join('\n');
+
+        const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط وبشكل شخصي وموجز جداً.** أنت "رفيق الحياة الاستباقي" في تطبيق صحتك/كي. حلل بيانات يوم أمس من يوميات المستخدم، وقدم له موجز صباحي ذكي ومحفز. يجب أن يكون الموجز قصيراً وشخصياً.
+- ابدأ بـ "**صباح الخير أحمد!**".
+- علّق على شيء إيجابي واحد من يوم أمس (إن وجد).
+- قدم نصيحة واحدة صغيرة ومؤثرة لليوم بناءً على نشاطه الأخير.
+- كن ودوداً ومشجعاً. لا تتجاوز 3 جمل.
+
+**بيانات يوم أمس:**
+${formattedData}`;
+
+        const response = await callGeminiApi(prompt);
+        return response;
+    } catch (error) {
+        console.error("Error generating morning briefing:", error);
+        return "**صباح الخير أحمد!** أتمنى لك يوماً مليئاً بالصحة والنشاط. تذكر أن كل خطوة صغيرة هي إنجاز بحد ذاتها.";
+    }
+};
+
+/**
+ * Suggests a movie based on yesterday's diary entries.
+ * @returns A string containing the movie suggestion.
+ */
+export const suggestMovieBasedOnDiary = async (): Promise<string> => {
+    try {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const entries = getDiaryEntries(yesterday);
+
+        if (entries.length === 0) {
+            return "اسم الفيلم: Forrest Gump\n\nلا توجد بيانات كافية في يومياتك لاقتراح فيلم مخصص. لكن بناءً على أنك تبدأ يوماً جديداً، أقترح عليك فيلم 'Forrest Gump'. إنه فيلم ملهم ومؤثر عن رحلة رجل بسيط القلب عبر أحداث تاريخية عظيمة، يعلمنا أن الحياة مثل علبة الشوكولاتة، لا تعرف أبداً ما ستحصل عليه. مشاهدة ممتعة!";
+        }
+
+        const formattedData = entries.map(e => `- ${e.title}: ${e.details}`).join('\n');
+
+        const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت خبير سينمائي ومحلل نفسي. بناءً على يوميات المستخدم بالأمس، اقترح فيلماً واحداً يناسب مزاجه أو أنشطته. إذا كانت اليوميات تشير إلى نشاط وحيوية (مثل 'نشاط بدني')، اقترح فيلماً حماسياً أو فيلم أكشن. إذا كانت تشير إلى الاسترخاء أو ملاحظات هادئة، اقترح فيلماً درامياً هادئاً أو كوميدياً خفيفاً.
+- قدم ملخصاً للفيلم وسبب اقتراحك له بناءً على اليوميات.
+- **مهم جداً:** في بداية ردك، اكتب السطر التالي تماماً وبدون أي إضافات قبله: "اسم الفيلم: [اسم الفيلم هنا]".
+
+**يوميات الأمس:**
+${formattedData}`;
+
+        const response = await callGeminiApi(prompt);
+        return response;
+
+    } catch (error) {
+        console.error("Error suggesting movie:", error);
+        throw new Error("فشل في اقتراح فيلم. يرجى المحاولة مرة أخرى.");
+    }
+};
+
+
+/**
  * Calls Gemini API with Google Search grounding for up-to-date information.
  * @param query - The user's search query.
  * @returns An object with the text response and grounding source chunks.

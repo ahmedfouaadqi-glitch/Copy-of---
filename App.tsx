@@ -10,6 +10,11 @@ import ChatPage from './pages/ChatPage';
 import MyPlantsPage from './pages/MyPlantsPage';
 import GlobalSearchPage from './pages/GlobalSearchPage';
 import SportsTrainerPage from './pages/SportsTrainerPage';
+import ShoppingListPage from './pages/ShoppingListPage';
+import ChallengesPage from './pages/ChallengesPage';
+import CommunityInspirationsPage from './pages/CommunityInspirationsPage';
+import DietPlanPage from './pages/DietPlanPage';
+import FavoriteMoviesPage from './pages/FavoriteMoviesPage';
 
 import { ThemeProvider } from './context/ThemeContext';
 import { AnalysisProvider } from './context/AnalysisContext';
@@ -75,13 +80,23 @@ const AppContent: React.FC = () => {
           return <GlobalSearchPage navigateTo={navigateTo} />;
       case 'sportsTrainer':
           return <SportsTrainerPage navigateTo={navigateTo} />;
-      case 'schedule': // Handle the new schedule page type
-          const scheduleFeature = FEATURES.find(f => f.pageType === currentPage.type);
-          if (scheduleFeature) {
-              return <SmartHealthPage feature={scheduleFeature} navigateTo={navigateTo} />;
-          }
-           return <HomePage navigateTo={navigateTo} />; // Fallback
+      case 'shoppingList':
+          return <ShoppingListPage navigateTo={navigateTo} />;
+      case 'challenges':
+          return <ChallengesPage navigateTo={navigateTo} />;
+      case 'communityInspirations':
+          return <CommunityInspirationsPage navigateTo={navigateTo} />;
+      case 'dietPlan':
+          return <DietPlanPage navigateTo={navigateTo} />;
+      case 'favoriteMovies':
+          return <FavoriteMoviesPage navigateTo={navigateTo} />;
       default:
+        // Check if it's a smartHealth pageType that was passed without the container type
+        const page = currentPage as any;
+        const possibleFeature = FEATURES.find(f => f.pageType === page.type);
+        if(possibleFeature && possibleFeature.page.type === 'smartHealth') {
+            return <SmartHealthPage feature={possibleFeature} navigateTo={navigateTo} />;
+        }
         return <HomePage navigateTo={navigateTo} />;
     }
   };
@@ -92,7 +107,7 @@ const AppContent: React.FC = () => {
   
   return (
       <div className="bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 min-h-screen font-sans">
-          <div className="pb-20"> {/* Padding bottom to prevent content from being hidden by the nav bar */}
+          <div className="pb-20"> {/* Padding for classic nav bar */}
               {renderPage()}
           </div>
           {!isCameraOpen && <BottomNavBar currentPage={currentPage} navigateTo={navigateTo} />}

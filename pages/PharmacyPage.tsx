@@ -124,7 +124,7 @@ const PharmacyPage: React.FC<NavigationProps> = ({ navigateTo }) => {
 
     return (
         <div className="bg-gray-50 dark:bg-black min-h-screen">
-            <PageHeader onBack={handleBack} navigateTo={navigateTo} title="الصيدلية المنزلية الذكية" Icon={feature.Icon} color={feature.color} />
+            <PageHeader onBack={handleBack} navigateTo={navigateTo} title="مركز مستشار الصيدلاني الذكي" Icon={feature.Icon} color={feature.color} />
             <main className="p-4">
                 <div className="bg-yellow-50 dark:bg-black border-l-4 border-yellow-400 text-yellow-800 dark:text-yellow-300 p-4 mb-6" role="alert">
                     <div className="flex">
