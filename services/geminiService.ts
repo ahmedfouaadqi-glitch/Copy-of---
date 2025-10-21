@@ -1,71 +1,87 @@
-import { GoogleGenAI, GenerateContentResponse, Part, Modality, Content, Type } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse, Part, Modality, Content, Type, GenerateVideosOperation, Video } from "@google/genai";
 import { ChatMessage, DiaryEntry, GroundingChunk, VisualFoodAnalysis } from '../types';
 import { getDiaryEntries } from "./diaryService";
 
-// Per guidelines, initialize with apiKey from environment variables.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+// This file has been significantly refactored to incorporate a wide range of Gemini features
+// as per the user's comprehensive request, including advanced models, error handling, and new functionalities.
+
+const handleGeminiError = (error: any): string => {
+    console.error("Gemini API Error:", error);
+    let message = "فشل الاتصال بالذكاء الاصطناعي. يرجى المحاولة مرة أخرى.";
+    if (error.message) {
+        if (error.message.includes('API key not valid')) {
+            message = "مفتاح API غير صالح. يرجى التحقق من مفتاحك والمحاولة مرة أخرى (خاص بخدمة Veo).";
+        } else if (error.message.includes('429')) {
+             message = "تم تجاوز حد الطلبات. يرجى المحاولة مرة أخرى لاحقًا.";
+        } else if (error.message.includes('SAFETY')) {
+            message = "تم حظر الطلب بسبب سياسات الأمان.";
+        } else if (error.message.includes('Network error')) {
+            message = "حدث خطأ في الشبكة. يرجى التحقق من اتصالك بالإنترنت.";
+        }
+    }
+    return message;
+};
 
 /**
- * A general-purpose function to call the Gemini API for text and vision tasks.
- * Uses 'gemini-2.5-flash' for speed and efficiency.
- * @param prompt - The text prompt.
- * @param images - An optional array of base64 encoded images.
- * @returns The generated text response.
+ * A general-purpose function for fast tasks using 'gemini-2.5-flash'.
  */
 export const callGeminiApi = async (prompt: string, images?: { mimeType: string; data: string }[]): Promise<string> => {
     try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
         const parts: Part[] = [{ text: prompt }];
         if (images && images.length > 0) {
-            images.forEach(image => {
-                parts.push({
-                    inlineData: {
-                        mimeType: image.mimeType,
-                        data: image.data,
-                    },
-                });
-            });
+            images.forEach(image => parts.push({ inlineData: { mimeType: image.mimeType, data: image.data } }));
         }
-
         const response: GenerateContentResponse = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: { parts: parts },
         });
-
-        // Per guidelines, access text directly from the response.
         return response.text;
     } catch (error) {
-        console.error("Error calling Gemini API:", error);
-        // Throw a more user-friendly error message.
-        throw new Error("فشل الاتصال بالذكاء الاصطناعي. يرجى المحاولة مرة أخرى.");
+        throw new Error(handleGeminiError(error));
     }
 };
 
 /**
- * Calls Gemini API and expects a JSON response based on a provided schema.
- * @param prompt - The text prompt.
- * @param schema - The JSON schema for the expected response.
- * @returns The parsed JSON object from the response.
+ * A specialized function for complex tasks using 'gemini-2.5-pro' with thinking mode.
  */
-export const callGeminiJsonApi = async (prompt: string, schema: any): Promise<any> => {
+export const callGeminiProApi = async (prompt: string): Promise<string> => {
     try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.5-pro',
             contents: prompt,
             config: {
-                responseMimeType: 'application/json',
-                responseSchema: schema,
-            },
+                thinkingConfig: { thinkingBudget: 32768 }
+            }
         });
-        
-        // Per guidelines, access text directly from the response.
+        return response.text;
+    } catch (error) {
+        throw new Error(handleGeminiError(error));
+    }
+};
+
+/**
+ * Calls Gemini API for structured JSON output.
+ */
+export const callGeminiJsonApi = async (prompt: string, schema: any, useProModel: boolean = false): Promise<any> => {
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+        const model = useProModel ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
+        const config: any = {
+            responseMimeType: 'application/json',
+            responseSchema: schema,
+        };
+        if (useProModel) {
+            config.thinkingConfig = { thinkingBudget: 32768 };
+        }
+
+        const response = await ai.models.generateContent({ model, contents: prompt, config });
         const jsonText = response.text.trim();
-        
-        // Basic cleanup, sometimes Gemini wraps it in markdown
         const cleanedJsonText = jsonText.replace(/^```json\n/, '').replace(/\n```$/, '');
         return JSON.parse(cleanedJsonText);
     } catch (error) {
-        console.error("Error calling Gemini JSON API:", error);
-        throw new Error("فشل في توليد الخطة المنظمة. يرجى المحاولة مرة أخرى.");
+        throw new Error(handleGeminiError(error));
     }
 };
 
@@ -85,6 +101,7 @@ const visualFoodSchema = {
 
 export const callGeminiVisualJsonApi = async (prompt: string, image: { mimeType: string; data: string }): Promise<VisualFoodAnalysis> => {
      try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: { parts: [{ text: prompt }, { inlineData: { mimeType: image.mimeType, data: image.data } }] },
@@ -93,220 +110,221 @@ export const callGeminiVisualJsonApi = async (prompt: string, image: { mimeType:
                 responseSchema: visualFoodSchema,
             },
         });
-        
         const jsonText = response.text.trim();
         const cleanedJsonText = jsonText.replace(/^```json\n/, '').replace(/\n```$/, '');
         return JSON.parse(cleanedJsonText) as VisualFoodAnalysis;
     } catch (error) {
-        console.error("Error calling Gemini Visual JSON API:", error);
-        throw new Error("فشل في تحليل الصورة غذائياً. يرجى المحاولة مرة أخرى.");
+        throw new Error(handleGeminiError(error));
     }
 }
 
-
 /**
- * Handles conversational chat with the Gemini API.
- * Manages chat history and system instructions.
- * Uses 'gemini-2.5-flash'.
- * @param messages - The history of the conversation.
- * @param systemInstruction - The system prompt to guide the model's behavior.
- * @returns The model's next response in the conversation.
+ * Handles conversational chat, optimized for speed with 'gemini-2.5-flash-lite' for follow-ups.
  */
-export const callGeminiChatApi = async (messages: ChatMessage[], systemInstruction: string): Promise<string> => {
+export const callGeminiChatApi = async (messages: ChatMessage[], systemInstruction: string, isFollowUp: boolean = false): Promise<string> => {
     try {
-        // Filter out the initial greeting message from the model if it exists, to not confuse the model history
-        const filteredMessages = messages.filter(m => m.role !== 'model' || m.content.includes('اسالني عن اي شيء يخطر ببالك') === false);
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+        const model = isFollowUp ? 'gemini-2.5-flash-lite' : 'gemini-2.5-flash';
 
-        const contents: Content[] = filteredMessages.map(msg => {
-            const parts: Part[] = [{ text: msg.content }];
-            if (msg.imageUrl) {
-                parts.unshift({ // Add image before text if it exists
-                    inlineData: {
-                        mimeType: msg.imageUrl.match(/data:(.*);base64,/)?.[1] || 'image/jpeg',
-                        data: msg.imageUrl.split(',')[1]
-                    }
-                });
-            }
-            return {
-                role: msg.role,
-                parts: parts
-            };
-        });
+        const filteredMessages = messages.filter(m => m.role !== 'model' || m.content.includes('اسالني عن اي شيء يخطر ببالك') === false);
+        const contents: Content[] = filteredMessages.map(msg => ({
+            role: msg.role,
+            parts: msg.imageUrl ? [
+                { inlineData: { mimeType: msg.imageUrl.match(/data:(.*);base64,/)?.[1] || 'image/jpeg', data: msg.imageUrl.split(',')[1] } },
+                { text: msg.content }
+            ] : [{ text: msg.content }]
+        }));
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: contents,
-            config: {
-                systemInstruction: `${systemInstruction} الرجاء الرد دائماً باللغة العربية الفصحى.`,
-            },
+            model,
+            contents,
+            config: { systemInstruction: `${systemInstruction} الرجاء الرد دائماً باللغة العربية الفصحى.` },
         });
 
         return response.text;
     } catch (error) {
-        console.error("Error in Gemini Chat API:", error);
-        throw new Error("فشل الاتصال بمساعد الدردشة. يرجى المحاولة مرة أخرى.");
+        throw new Error(handleGeminiError(error));
     }
 };
 
 /**
- * Generates an image using the Imagen model.
- * @param prompt - The text description of the image to generate.
- * @returns A base64 encoded string of the generated image.
+ * Generates an image using Imagen 4.0 with aspect ratio options.
  */
-export const generateImage = async (prompt: string): Promise<string> => {
+export const generateImage = async (prompt: string, aspectRatio: '1:1' | '16:9' | '9:16' = '1:1'): Promise<string> => {
     try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
         const response = await ai.models.generateImages({
-            model: 'imagen-4.0-generate-001', // High-quality image generation model
+            model: 'imagen-4.0-generate-001',
             prompt: prompt,
             config: {
                 numberOfImages: 1,
-                outputMimeType: 'image/jpeg', // JPEG is generally smaller
+                outputMimeType: 'image/jpeg',
+                aspectRatio,
             },
         });
-
         const base64ImageBytes = response.generatedImages[0].image.imageBytes;
         return `data:image/jpeg;base64,${base64ImageBytes}`;
     } catch (error) {
-        console.error("Error generating image:", error);
-        throw new Error("فشل إنشاء الصورة. قد يكون الطلب غير متوافق مع سياسات الأمان.");
+        throw new Error(handleGeminiError(error));
     }
 };
 
 /**
- * Analyzes the user's diary entries for the past week and provides insights.
- * @returns A string containing the analysis and advice.
+ * Analyzes diary entries using the powerful 'gemini-2.5-pro' for deeper insights.
  */
 export const analyzeDiaryEntries = async (): Promise<string> => {
-    try {
-        const allEntries: { date: string, entries: DiaryEntry[] }[] = [];
-        // Get entries for the last 7 days
-        for (let i = 0; i < 7; i++) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            const entriesForDate = getDiaryEntries(date);
-            if (entriesForDate.length > 0) {
-                allEntries.push({ date: date.toLocaleDateString('ar-EG'), entries: entriesForDate });
-            }
-        }
-
-        if (allEntries.length === 0) {
-            return "لا توجد بيانات كافية في يومياتك خلال الأسبوع الماضي لتقديم تحليل. حاول تسجيل أنشطتك اليومية بانتظام!";
-        }
-
-        // Format data for the prompt
-        const formattedData = allEntries.map(day => 
-            `**${day.date}:**\n` + day.entries.map(e => `- ${e.title}: ${e.details}`).join('\n')
-        ).join('\n\n');
-
-        const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت مستشار صحي استباقي. حلل بيانات اليوميات التالية للمستخدم على مدار الأسبوع الماضي. قدم رؤى واضحة حول الأنماط الإيجابية والسلبية، وقدم نصيحتين عمليتين ومخصصتين لتحسين صحته بناءً على البيانات المقدمة فقط.\n\n**بيانات الأسبوع:**\n${formattedData}`;
-        
-        const response = await callGeminiApi(prompt);
-        return response;
-
-    } catch (error) {
-        console.error("Error analyzing diary entries:", error);
-        throw new Error("فشل تحليل بيانات اليوميات.");
+    const allEntries: { date: string, entries: DiaryEntry[] }[] = [];
+    for (let i = 0; i < 7; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const entriesForDate = getDiaryEntries(date);
+        if (entriesForDate.length > 0) allEntries.push({ date: date.toLocaleDateString('ar-EG'), entries: entriesForDate });
     }
+    if (allEntries.length === 0) return "لا توجد بيانات كافية في يومياتك خلال الأسبوع الماضي لتقديم تحليل. حاول تسجيل أنشطتك اليومية بانتظام!";
+    
+    const formattedData = allEntries.map(day => `**${day.date}:**\n` + day.entries.map(e => `- ${e.title}: ${e.details}`).join('\n')).join('\n\n');
+    const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت مستشار صحي استباقي وذكي. حلل بيانات اليوميات التالية للمستخدم على مدار الأسبوع الماضي بعمق. قدم رؤى واضحة حول الأنماط الإيجابية والسلبية، وقدم نصيحتين عمليتين ومخصصتين لتحسين صحته بناءً على البيانات المقدمة فقط.\n\n**بيانات الأسبوع:**\n${formattedData}`;
+    
+    return await callGeminiProApi(prompt); // Use the Pro model for deep analysis
 };
 
-/**
- * Generates a proactive morning briefing based on yesterday's diary entries.
- * @returns A string containing the morning briefing.
- */
 export const generateMorningBriefing = async (): Promise<string> => {
     try {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const entries = getDiaryEntries(yesterday);
-
-        if (entries.length === 0) {
-            return "**صباح الخير أحمد!** يوم جديد هو فرصة جديدة. لم تسجل أي أنشطة بالأمس، ما رأيك أن تبدأ اليوم بتسجيل وجبة فطور صحية أو نشاط بسيط؟ أتمنى لك يوماً رائعاً!";
-        }
+        if (entries.length === 0) return "**صباح الخير أحمد!** يوم جديد هو فرصة جديدة. لم تسجل أي أنشطة بالأمس، ما رأيك أن تبدأ اليوم بتسجيل وجبة فطور صحية أو نشاط بسيط؟ أتمنى لك يوماً رائعاً!";
         
         const formattedData = entries.map(e => `- ${e.title}: ${e.details}`).join('\n');
-
-        const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط وبشكل شخصي وموجز جداً.** أنت "رفيق الحياة الاستباقي" في تطبيق صحتك/كي. حلل بيانات يوم أمس من يوميات المستخدم، وقدم له موجز صباحي ذكي ومحفز. يجب أن يكون الموجز قصيراً وشخصياً.
-- ابدأ بـ "**صباح الخير أحمد!**".
-- علّق على شيء إيجابي واحد من يوم أمس (إن وجد).
-- قدم نصيحة واحدة صغيرة ومؤثرة لليوم بناءً على نشاطه الأخير.
-- كن ودوداً ومشجعاً. لا تتجاوز 3 جمل.
-
-**بيانات يوم أمس:**
-${formattedData}`;
-
-        const response = await callGeminiApi(prompt);
-        return response;
+        const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط وبشكل شخصي وموجز جداً.** أنت "رفيق الحياة الاستباقي" في تطبيق صحتك/كي. حلل بيانات يوم أمس من يوميات المستخدم "أحمد"، وقدم له موجز صباحي ذكي ومحفز. يجب أن يكون الموجز قصيراً وشخصياً. - ابدأ بـ "**صباح الخير أحمد!**". - علّق على شيء إيجابي واحد من يوم أمس (إن وجد). - قدم نصيحة واحدة صغيرة ومؤثرة لليوم بناءً على نشاطه الأخير. - كن ودوداً ومشجعاً. لا تتجاوز 3 جمل. **بيانات يوم أمس:**\n${formattedData}`;
+        return await callGeminiApi(prompt);
     } catch (error) {
         console.error("Error generating morning briefing:", error);
         return "**صباح الخير أحمد!** أتمنى لك يوماً مليئاً بالصحة والنشاط. تذكر أن كل خطوة صغيرة هي إنجاز بحد ذاتها.";
     }
 };
 
-/**
- * Suggests a movie based on yesterday's diary entries.
- * @returns A string containing the movie suggestion.
- */
 export const suggestMovieBasedOnDiary = async (): Promise<string> => {
     try {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const entries = getDiaryEntries(yesterday);
-
-        if (entries.length === 0) {
-            return "اسم الفيلم: Forrest Gump\n\nلا توجد بيانات كافية في يومياتك لاقتراح فيلم مخصص. لكن بناءً على أنك تبدأ يوماً جديداً، أقترح عليك فيلم 'Forrest Gump'. إنه فيلم ملهم ومؤثر عن رحلة رجل بسيط القلب عبر أحداث تاريخية عظيمة، يعلمنا أن الحياة مثل علبة الشوكولاتة، لا تعرف أبداً ما ستحصل عليه. مشاهدة ممتعة!";
-        }
-
+        if (entries.length === 0) return "اسم الفيلم: Forrest Gump\n\nلا توجد بيانات كافية في يومياتك لاقتراح فيلم مخصص. لكن بناءً على أنك تبدأ يوماً جديداً، أقترح عليك فيلم 'Forrest Gump'. إنه فيلم ملهم ومؤثر عن رحلة رجل بسيط القلب عبر أحداث تاريخية عظيمة، يعلمنا أن الحياة مثل علبة الشوكولاتة، لا تعرف أبداً ما ستحصل عليه. مشاهدة ممتعة!";
+        
         const formattedData = entries.map(e => `- ${e.title}: ${e.details}`).join('\n');
-
-        const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت خبير سينمائي ومحلل نفسي. بناءً على يوميات المستخدم بالأمس، اقترح فيلماً واحداً يناسب مزاجه أو أنشطته. إذا كانت اليوميات تشير إلى نشاط وحيوية (مثل 'نشاط بدني')، اقترح فيلماً حماسياً أو فيلم أكشن. إذا كانت تشير إلى الاسترخاء أو ملاحظات هادئة، اقترح فيلماً درامياً هادئاً أو كوميدياً خفيفاً.
-- قدم ملخصاً للفيلم وسبب اقتراحك له بناءً على اليوميات.
-- **مهم جداً:** في بداية ردك، اكتب السطر التالي تماماً وبدون أي إضافات قبله: "اسم الفيلم: [اسم الفيلم هنا]".
-
-**يوميات الأمس:**
-${formattedData}`;
-
-        const response = await callGeminiApi(prompt);
-        return response;
-
+        const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت خبير سينمائي ومحلل نفسي. بناءً على يوميات المستخدم بالأمس، اقترح فيلماً واحداً يناسب مزاجه أو أنشطته. إذا كانت اليوميات تشير إلى نشاط وحيوية (مثل 'نشاط بدني')، اقترح فيلماً حماسياً أو فيلم أكشن. إذا كانت تشير إلى الاسترخاء أو ملاحظات هادئة، اقترح فيلماً درامياً هادئاً أو كوميدياً خفيفاً. - قدم ملخصاً للفيلم وسبب اقتراحك له بناءً على اليوميات. - **مهم جداً:** في بداية ردك، اكتب السطر التالي تماماً وبدون أي إضافات قبله: "اسم الفيلم: [اسم الفيلم هنا]". **يوميات الأمس:**\n${formattedData}`;
+        return await callGeminiApi(prompt);
     } catch (error) {
-        console.error("Error suggesting movie:", error);
-        throw new Error("فشل في اقتراح فيلم. يرجى المحاولة مرة أخرى.");
+        throw new Error(handleGeminiError(error));
     }
 };
 
-
-/**
- * Calls Gemini API with Google Search grounding for up-to-date information.
- * @param query - The user's search query.
- * @returns An object with the text response and grounding source chunks.
- */
-export const callGeminiSearchApi = async (query: string): Promise<{ text: string, groundingChunks: GroundingChunk[] }> => {
+export const callGeminiSearchApi = async (query: string, useMaps: boolean, location?: { latitude: number; longitude: number; }): Promise<{ text: string, groundingChunks: GroundingChunk[] }> => {
     try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+        const tools: any[] = useMaps ? [{ googleMaps: {} }, { googleSearch: {} }] : [{ googleSearch: {} }];
+        const toolConfig = useMaps && location ? { retrievalConfig: { latLng: location } } : {};
+        
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: query,
-            config: {
-                tools: [{ googleSearch: {} }],
-                systemInstruction: 'أنت مساعد بحث مفيد. لخص النتائج باللغة العربية الفصحى.',
-            },
+            config: { tools, toolConfig, systemInstruction: 'أنت مساعد بحث مفيد. لخص النتائج باللغة العربية الفصحى.' },
         });
         
         const text = response.text;
         const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
         
-        // Ensure the chunks conform to the GroundingChunk type
-        const groundingChunks: GroundingChunk[] = chunks
-            .filter((c: any) => c.web && c.web.uri)
-            .map((c: any) => ({
-                web: {
-                    uri: c.web.uri,
-                    title: c.web.title || 'مصدر غير معنون',
-                }
-            }));
+        const groundingChunks: GroundingChunk[] = chunks.map((c: any) => c).filter(Boolean);
 
         return { text, groundingChunks };
     } catch (error) {
-        console.error("Error in Gemini Search API:", error);
-        throw new Error("فشل البحث. يرجى المحاولة مرة أخرى.");
+        throw new Error(handleGeminiError(error));
+    }
+};
+
+export const textToSpeech = async (text: string): Promise<string> => {
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash-preview-tts",
+            contents: [{ parts: [{ text: `Say cheerfully: ${text}` }] }],
+            config: {
+                responseModalities: [Modality.AUDIO],
+                speechConfig: {
+                    voiceConfig: {
+                        prebuiltVoiceConfig: { voiceName: 'Kore' },
+                    },
+                },
+            },
+        });
+        return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || "";
+    } catch (error) {
+        throw new Error(handleGeminiError(error));
+    }
+};
+
+export const editImage = async (prompt: string, image: { mimeType: string, data: string }): Promise<string> => {
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-image',
+            contents: { parts: [ { inlineData: { mimeType: image.mimeType, data: image.data } }, { text: prompt } ] },
+            config: { responseModalities: [Modality.IMAGE] },
+        });
+        for (const part of response.candidates[0].content.parts) {
+            if (part.inlineData) return part.inlineData.data;
+        }
+        throw new Error("لم يتم العثور على صورة في الاستجابة.");
+    } catch (error) {
+        throw new Error(handleGeminiError(error));
+    }
+};
+
+export const analyzeVideoFrame = async (prompt: string, image: { mimeType: string, data: string }): Promise<string> => {
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-pro', // Use Pro for better video frame analysis
+            contents: { parts: [{ text: prompt }, { inlineData: { mimeType: image.mimeType, data: image.data } }] },
+        });
+        return response.text;
+    } catch (error) {
+        throw new Error(handleGeminiError(error));
+    }
+};
+
+export const generateVideo = async (prompt: string, image?: { mimeType: string; data: string }, aspectRatio: '16:9' | '9:16' = '16:9'): Promise<GenerateVideosOperation> => {
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+        return ai.models.generateVideos({
+            model: 'veo-3.1-fast-generate-preview',
+            prompt,
+            image: image ? { imageBytes: image.data, mimeType: image.mimeType } : undefined,
+            config: { numberOfVideos: 1, resolution: '720p', aspectRatio },
+        });
+    } catch (error) {
+        throw new Error(handleGeminiError(error));
+    }
+};
+
+export const getVideosOperation = async (operation: GenerateVideosOperation): Promise<GenerateVideosOperation> => {
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+        return await ai.operations.getVideosOperation({ operation });
+    } catch (error) {
+        throw new Error(handleGeminiError(error));
+    }
+};
+
+export const transcribeAudio = async (audio: { mimeType: string, data: string }): Promise<string> => {
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: { parts: [{ inlineData: { mimeType: audio.mimeType, data: audio.data } }] },
+        });
+        return response.text;
+    } catch (error) {
+        throw new Error(handleGeminiError(error));
     }
 };

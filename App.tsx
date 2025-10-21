@@ -15,6 +15,12 @@ import ChallengesPage from './pages/ChallengesPage';
 import CommunityInspirationsPage from './pages/CommunityInspirationsPage';
 import DietPlanPage from './pages/DietPlanPage';
 import FavoriteMoviesPage from './pages/FavoriteMoviesPage';
+import ImageEditingPage from './pages/ImageEditingPage';
+import VideoAnalysisPage from './pages/VideoAnalysisPage';
+import VideoGenerationPage from './pages/VideoGenerationPage';
+import LiveConversationPage from './pages/LiveConversationPage';
+import TranscriptionPage from './pages/TranscriptionPage';
+
 
 import { ThemeProvider } from './context/ThemeContext';
 import { AnalysisProvider } from './context/AnalysisContext';
@@ -90,6 +96,16 @@ const AppContent: React.FC = () => {
           return <DietPlanPage navigateTo={navigateTo} />;
       case 'favoriteMovies':
           return <FavoriteMoviesPage navigateTo={navigateTo} />;
+      case 'imageEditing':
+          return <ImageEditingPage navigateTo={navigateTo} />;
+      case 'videoAnalysis':
+          return <VideoAnalysisPage navigateTo={navigateTo} />;
+      case 'videoGeneration':
+          return <VideoGenerationPage navigateTo={navigateTo} />;
+      case 'liveConversation':
+          return <LiveConversationPage navigateTo={navigateTo} />;
+      case 'transcription':
+          return <TranscriptionPage navigateTo={navigateTo} />;
       default:
         // Check if it's a smartHealth pageType that was passed without the container type
         const page = currentPage as any;

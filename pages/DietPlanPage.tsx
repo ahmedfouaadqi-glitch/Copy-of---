@@ -5,7 +5,7 @@ import PageHeader from '../components/PageHeader';
 import { UtensilsCrossed, Sparkles, Trash2 } from 'lucide-react';
 import { PERSONAL_ADVISOR_BEAUTY_SUB_FEATURES } from '../constants';
 import { Type } from '@google/genai';
-import MarkdownRenderer from '../components/MarkdownRenderer';
+import TTSButton from '../components/TTSButton';
 
 const featureData = PERSONAL_ADVISOR_BEAUTY_SUB_FEATURES.subCategories.find(f => f.id === 'diet-plan')!;
 const PLAN_STORAGE_KEY = 'dietPlan';
@@ -70,15 +70,15 @@ const DietPlanPage: React.FC<NavigationProps> = ({ navigateTo }) => {
         setError(null);
         setPlan(null);
 
-        const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت خبير تغذية معتمد. أنشئ خطة غذائية مفصلة لمدة 7 أيام بناءً على المعلومات التالية للمستخدم:
+        const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت خبير تغذية معتمد. أنشئ خطة غذائية مفصلة ومتعمقة لمدة 7 أيام بناءً على المعلومات التالية للمستخدم:
 - **الهدف:** ${formState.goal}
 - **نوع النظام:** ${formState.dietType}
 - **معلومات إضافية (حساسية/أطعمة غير مفضلة):** ${formState.allergies || 'لا يوجد'}
 
-يجب أن يكون الرد بتنسيق JSON. لكل يوم، قدم وجبات (فطور، غداء، عشاء، ووجبة خفيفة)، مع وصف لكل وجبة وتقدير سعراتها الحرارية. أضف إجمالي السعرات اليومية ونصيحة يومية.`;
+يجب أن يكون الرد بتنسيق JSON. لكل يوم، قدم وجبات (فطور، غداء، عشاء، ووجبة خفيفة)، مع وصف لكل وجبة وتقدير سعراتها الحرارية. أضف إجمالي السعرات اليومية ونصيحة يومية. كن دقيقاً وعلمياً في اقتراحاتك.`;
         
         try {
-            const result = await callGeminiJsonApi(prompt, dietPlanSchema);
+            const result = await callGeminiJsonApi(prompt, dietPlanSchema, true); // Use Pro model with thinking mode
             if (result && result.dailyPlan) {
                 setPlan(result);
                 localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(result));
@@ -96,6 +96,20 @@ const DietPlanPage: React.FC<NavigationProps> = ({ navigateTo }) => {
         setPlan(null);
         localStorage.removeItem(PLAN_STORAGE_KEY);
     }
+    
+    const getPlanAsText = (): string => {
+        if (!plan) return "";
+        let text = `${plan.planTitle}\n\n`;
+        plan.dailyPlan.forEach(day => {
+            text += `**${day.day} (إجمالي ~${day.dailyTotalCalories} سعرة)**\n`;
+            day.meals.forEach(meal => {
+                text += `- **${meal.meal} (~${meal.calories} سعرة):** ${meal.description}\n`;
+            });
+            text += `*نصيحة اليوم:* ${day.dailyTip}\n\n`;
+        });
+        return text;
+    };
+
 
     const renderPlanSetup = () => (
         <div className="bg-white dark:bg-black p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-800">
@@ -133,7 +147,10 @@ const DietPlanPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const renderPlanView = () => (
       <div>
         <div className="bg-white dark:bg-black p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-800 mb-4">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">{plan?.planTitle}</h2>
+            <div className="flex justify-between items-start">
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">{plan?.planTitle}</h2>
+                <TTSButton textToRead={getPlanAsText()} />
+            </div>
         </div>
         <div className="space-y-3">
         {plan?.dailyPlan.map((day, index) => (
@@ -169,7 +186,7 @@ const DietPlanPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                 {isLoading && (
                      <div className="text-center p-8 bg-white dark:bg-black rounded-lg shadow-md">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div>
-                        <p className="mt-4 text-gray-600 dark:text-gray-300">...خبير التغذية يعد خطتك</p>
+                        <p className="mt-4 text-gray-600 dark:text-gray-300">...خبير التغذية يعد خطتك بعناية</p>
                     </div>
                 )}
                 {error && (

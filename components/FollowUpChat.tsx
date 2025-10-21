@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatMessage, AnalysisData } from '../types';
 import { callGeminiChatApi } from '../services/geminiService';
@@ -44,7 +43,7 @@ const FollowUpChat: React.FC<FollowUpChatProps> = ({ initialUserPrompt, initialM
     ];
 
     try {
-      const response = await callGeminiChatApi(history, systemInstruction);
+      const response = await callGeminiChatApi(history, systemInstruction, true); // Use flash-lite model
       const modelMessage: ChatMessage = { role: 'model', content: response };
       setMessages([...newMessages, modelMessage]);
     } catch (error) {

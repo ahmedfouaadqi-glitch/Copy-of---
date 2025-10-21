@@ -12,6 +12,7 @@ import { useAnalysis } from '../context/AnalysisContext';
 import MediaInput from '../components/MediaInput';
 import FollowUpChat from '../components/FollowUpChat';
 import toast from 'react-hot-toast';
+import TTSButton from '../components/TTSButton';
 
 interface SmartHealthPageProps extends NavigationProps {
   feature: Feature;
@@ -278,10 +279,18 @@ const SmartHealthPage: React.FC<SmartHealthPageProps> = ({ feature, navigateTo }
         )}
         {result && (
           <div className={`bg-${feature.color}-50 dark:bg-black p-4 rounded-lg shadow-md border border-${feature.color}-200 dark:border-${feature.color}-500/50`}>
-            <h3 className={`text-lg font-bold mb-2 flex items-center gap-2 text-${feature.color}-700 dark:text-${feature.color}-300`}>
-              <Sparkles size={20} />
-              نصيحة الخبراء
-            </h3>
+            <div className="flex justify-between items-start">
+              <h3 className={`text-lg font-bold mb-2 flex items-center gap-2 text-${feature.color}-700 dark:text-${feature.color}-300`}>
+                <Sparkles size={20} />
+                نصيحة الخبراء
+              </h3>
+              <TTSButton textToRead={result} />
+            </div>
+            {localImage && (
+                <div className="mb-4">
+                    <img src={localImage} alt="Analyzed content" className="rounded-lg max-h-60 w-auto mx-auto shadow-md" />
+                </div>
+            )}
             <MarkdownRenderer content={mainResult} />
             
             {shoppingListItems.length > 0 && (

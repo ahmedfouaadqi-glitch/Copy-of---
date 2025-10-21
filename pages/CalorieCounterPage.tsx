@@ -13,6 +13,7 @@ import { useAnalysis } from '../context/AnalysisContext';
 import FollowUpChat from '../components/FollowUpChat';
 import MediaInput from '../components/MediaInput';
 import toast from 'react-hot-toast';
+import TTSButton from '../components/TTSButton';
 
 
 const feature = FEATURES.find(f => f.pageType === 'calorieCounter')!;
@@ -354,7 +355,7 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                 {isLoading && (
                     <div className="text-center p-4">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-                        <p className="mt-4 text-gray-600 dark:text-gray-300">...جاري التحليل الذكي</p>
+                        <p className="mt-4 text-gray-600 dark:text-gray-300">خبير الطهي يتأمل وجبتك...</p>
                     </div>
                 )}
                 {error && (
@@ -366,10 +367,19 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                 )}
                 {(result || analysisResult) && (
                     <div className="mt-6 bg-orange-50 dark:bg-black p-4 rounded-lg shadow-md border border-orange-200 dark:border-orange-500/50 text-gray-800 dark:text-gray-200">
-                        <h3 className="text-lg font-bold mb-2 flex items-center gap-2 text-orange-700 dark:text-orange-300">
-                            <Sparkles size={20} />
-                            {mode === 'calories' ? 'التحليل الغذائي' : mode === 'visual' ? 'التقدير البصري' : 'وصفتك المقترحة'}
-                        </h3>
+                        <div className="flex justify-between items-start">
+                            <h3 className="text-lg font-bold mb-2 flex items-center gap-2 text-orange-700 dark:text-orange-300">
+                                <Sparkles size={20} />
+                                {mode === 'calories' ? 'التحليل الغذائي' : mode === 'visual' ? 'التقدير البصري' : 'وصفتك المقترحة'}
+                            </h3>
+                            <TTSButton textToRead={result || JSON.stringify(analysisResult)} />
+                        </div>
+                        
+                        {localImage && (
+                            <div className="mb-4">
+                                <img src={localImage} alt="Analyzed food" className="rounded-lg max-h-60 w-auto mx-auto shadow-md" />
+                            </div>
+                        )}
                         
                         {mainResult && <MarkdownRenderer content={mainResult} />}
                         {!mainResult && result && <MarkdownRenderer content={result} />}

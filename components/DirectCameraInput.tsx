@@ -1,5 +1,5 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { Camera, RefreshCw, X, CheckCircle } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import { RefreshCw, X, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface DirectCameraInputProps {
@@ -10,49 +10,42 @@ interface DirectCameraInputProps {
 
 const DirectCameraInput: React.FC<DirectCameraInputProps> = ({ onCapture, onClose, initialFacingMode }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<"user" | "environment">(initialFacingMode);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-
-  const startCamera = useCallback(async () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-    }
-
-    try {
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { exact: facingMode } }
-      });
-      setStream(newStream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = newStream;
-      }
-      setHasPermission(true);
-    } catch (error) {
-      console.error("فشل الوصول إلى الكاميرا:", error);
-       try {
-            const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
-            setStream(fallbackStream);
-            if (videoRef.current) videoRef.current.srcObject = fallbackStream;
-            setHasPermission(true);
-       } catch (fallbackError) {
-            console.error("فشل الوصول إلى الكاميرا (Fallback):", fallbackError);
-            toast.error("يرجى السماح للتطبيق باستخدام الكاميرا.");
-            setHasPermission(false);
-            onClose();
-       }
-    }
-  }, [facingMode, stream, onClose]);
-
+  const [isCapturing, setIsCapturing] = useState(false);
+  
+  // This effect manages the camera stream lifecycle.
+  // It starts the camera when the component mounts or when facingMode changes.
+  // It cleans up by stopping the stream when the component unmounts.
   useEffect(() => {
-    startCamera();
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+    let currentStream: MediaStream | null = null;
+    setCapturedImage(null); // Ensure preview is cleared when camera starts/switches
+
+    const startCamera = async () => {
+      try {
+        const newStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode }
+        });
+        currentStream = newStream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = newStream;
+        }
+      } catch (error) {
+        console.error("فشل الوصول إلى الكاميرا:", error);
+        toast.error("يرجى السماح للتطبيق باستخدام الكاميرا.");
+        onClose(); // Close the component if permission is denied
       }
     };
-  }, [facingMode]);
+
+    startCamera();
+
+    return () => {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [facingMode, onClose]);
+
 
   const switchCamera = () => {
     setFacingMode(prev => (prev === "user" ? "environment" : "user"));
@@ -62,12 +55,16 @@ const DirectCameraInput: React.FC<DirectCameraInputProps> = ({ onCapture, onClos
     const video = videoRef.current;
     if (!video) return;
 
+    setIsCapturing(true);
+    setTimeout(() => setIsCapturing(false), 200); // For shutter animation duration
+
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     
+    // Mirror selfie images for a more natural preview
     if (facingMode === 'user') {
         ctx.translate(canvas.width, 0);
         ctx.scale(-1, 1);
@@ -96,7 +93,7 @@ const DirectCameraInput: React.FC<DirectCameraInputProps> = ({ onCapture, onClos
         </button>
 
       {!capturedImage ? (
-        <div className="relative w-full h-full flex items-center justify-center">
+        <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
           <video
             ref={videoRef}
             autoPlay
@@ -104,6 +101,7 @@ const DirectCameraInput: React.FC<DirectCameraInputProps> = ({ onCapture, onClos
             muted
             className="w-full h-full object-cover"
           ></video>
+          {isCapturing && <div className="absolute inset-0 bg-white animate-shutter-flash"></div>}
           <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent z-10">
             <div className="flex items-center justify-around max-w-md mx-auto">
               <div className="w-16 h-16" />
@@ -151,6 +149,11 @@ const DirectCameraInput: React.FC<DirectCameraInputProps> = ({ onCapture, onClos
       <style>{`
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
+        @keyframes shutter-flash {
+            0% { opacity: 0.7; }
+            100% { opacity: 0; }
+        }
+        .animate-shutter-flash { animation: shutter-flash 0.2s ease-out; }
       `}</style>
     </div>
   );

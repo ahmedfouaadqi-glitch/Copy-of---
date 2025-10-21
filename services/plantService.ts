@@ -17,7 +17,8 @@ export const addPlant = (newPlant: Omit<UserPlant, 'id'>): UserPlant => {
     const plants = getPlants();
     const plant: UserPlant = {
         ...newPlant,
-        id: `plant-${Date.now()}`
+        id: `plant-${Date.now()}`,
+        journal: [], // Initialize with an empty journal
     };
     const updatedPlants = [plant, ...plants];
     localStorage.setItem(PLANTS_KEY, JSON.stringify(updatedPlants));
@@ -41,6 +42,13 @@ export const addPlant = (newPlant: Omit<UserPlant, 'id'>): UserPlant => {
 
     return plant;
 };
+
+export const updatePlant = (plantId: string, updatedPlant: UserPlant): UserPlant[] => {
+    const plants = getPlants();
+    const updatedPlants = plants.map(p => p.id === plantId ? updatedPlant : p);
+    localStorage.setItem(PLANTS_KEY, JSON.stringify(updatedPlants));
+    return updatedPlants;
+}
 
 export const deletePlant = (plantId: string): UserPlant[] => {
     let plants = getPlants();

@@ -3,14 +3,17 @@ import { NavigationProps, ChatMessage, PageType } from '../types';
 import { callGeminiChatApi, generateImage } from '../services/geminiService';
 import PageHeader from '../components/PageHeader';
 import { FEATURES } from '../constants';
-import { Send, Paperclip, X, Lightbulb } from 'lucide-react';
+import { Send, Paperclip, X, Lightbulb, Image as ImageIcon } from 'lucide-react';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import SmartTip from '../components/SmartTip';
 import { playSound } from '../services/soundService';
 import { useFeatureUsage } from '../hooks/useFeatureUsage';
+import TTSButton from '../components/TTSButton';
 
 const feature = FEATURES.find(f => f.pageType === 'chat')!;
-const SYSTEM_INSTRUCTION = "أنت 'عقل الروح التقنية'، مساعد ذكي ومتعدد الاستخدامات في تطبيق صحتك/كي. مهمتك هي الإجابة على استفسارات المستخدمين بوضوح ودقة. كن ودوداً ومتعاوناً وشخصياً.";
+const SYSTEM_INSTRUCTION = "أنت 'عقل الروح التقنية'، مساعد ذكي ومتعدد الاستخدامات في تطبيق صحتك/كي، الذي صُمم برؤية من 'أحمد معروف'. مهمتك هي الإجابة على استفسارات المستخدمين بوضوح، وعمق، ولمسة شخصية. كن ودوداً، ومتعاوناً، ومبدعاً في ردودك. عرف عن نفسك دائمًا بأنك 'عقل الروح التقنية'.";
+
+type AspectRatio = '1:1' | '16:9' | '9:16';
 
 const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -18,6 +21,7 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
   const [image, setImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [contextualSuggestion, setContextualSuggestion] = useState<{ text: string, prompt: string } | null>(null);
+  const [showImageOptions, setShowImageOptions] = useState(false);
   
   const chatEndRef = useRef<HTMLDivElement>(null);
   const { getLastVisitedFeature } = useFeatureUsage();
@@ -54,11 +58,45 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     localStorage.setItem('chatHistory', JSON.stringify(messages));
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+  
+  const handleImageGeneration = async (aspectRatio: AspectRatio) => {
+    const text = input;
+    setShowImageOptions(false);
+    if (!text.trim() || isLoading) return;
+
+    const userMessage: ChatMessage = { role: 'user', content: text };
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    setInput('');
+    setIsLoading(true);
+    playSound('tap');
+    
+    try {
+        const imageCommandRegex = /^(ارسم|صمم|تخيل|انشئ)\s/i;
+        const prompt = text.trim().replace(imageCommandRegex, '');
+        const imageUrl = await generateImage(prompt, aspectRatio);
+        const modelMessage: ChatMessage = { role: 'model', content: `تفضل، هذه هي الصورة التي طلبتها بناءً على وصف: "${prompt}"`, imageUrl };
+        setMessages(prev => [...prev, modelMessage]);
+        playSound('notification');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "حدث خطأ غير متوقع.";
+      const modelMessage: ChatMessage = { role: 'model', content: `**عذراً، حدث خطأ:**\n\n${errorMessage}` };
+      setMessages(prev => [...prev, modelMessage]);
+      playSound('error');
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   const handleSend = useCallback(async (text: string, attachedImage: string | null = image) => {
+    const imageCommandRegex = /^(ارسم|صمم|تخيل|انشئ)\s/i;
+    if (imageCommandRegex.test(text.trim())) {
+        setShowImageOptions(true);
+        return;
+    }
+    
     if ((!text.trim() && !attachedImage) || isLoading) return;
 
-    // Clear suggestion once user interacts
     if (contextualSuggestion) setContextualSuggestion(null);
 
     const userMessage: ChatMessage = { role: 'user', content: text, imageUrl: attachedImage };
@@ -70,19 +108,10 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     playSound('tap');
 
     try {
-        const imageCommandRegex = /^(ارسم|صمم|تخيل|انشئ)\s/i;
-        if (imageCommandRegex.test(text.trim())) {
-            const prompt = text.trim().replace(imageCommandRegex, '');
-            const imageUrl = await generateImage(prompt);
-            const modelMessage: ChatMessage = { role: 'model', content: `تفضل، هذه هي الصورة التي طلبتها بناءً على وصف: "${prompt}"`, imageUrl };
-            setMessages(prev => [...prev, modelMessage]);
-            playSound('notification');
-        } else {
-            const response = await callGeminiChatApi(newMessages, SYSTEM_INSTRUCTION);
-            const modelMessage: ChatMessage = { role: 'model', content: response };
-            setMessages(prev => [...prev, modelMessage]);
-            playSound('notification');
-        }
+        const response = await callGeminiChatApi(newMessages, SYSTEM_INSTRUCTION);
+        const modelMessage: ChatMessage = { role: 'model', content: response };
+        setMessages(prev => [...prev, modelMessage]);
+        playSound('notification');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "حدث خطأ غير متوقع.";
       const modelMessage: ChatMessage = { role: 'model', content: `**عذراً، حدث خطأ:**\n\n${errorMessage}` };
@@ -110,9 +139,7 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
       const file = e.target.files?.[0];
       if (file) {
           const reader = new FileReader();
-          reader.onloadend = () => {
-              setImage(reader.result as string);
-          };
+          reader.onloadend = () => setImage(reader.result as string);
           reader.readAsDataURL(file);
       }
   };
@@ -131,6 +158,7 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
             <div className={`max-w-md lg:max-w-xl p-3 rounded-2xl shadow-sm ${msg.role === 'user' ? 'bg-blue-500 text-white rounded-br-none' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-bl-none'}`}>
               {msg.imageUrl && <img src={msg.imageUrl} alt="chat content" className="rounded-lg mb-2 max-h-60" />}
               <MarkdownRenderer content={msg.content} />
+              {msg.role === 'model' && msg.content && !msg.content.startsWith('**مرحباً') && <TTSButton textToRead={msg.content} />}
             </div>
           </div>
         ))}
@@ -155,6 +183,18 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
             </button>
          </div>
        )}
+
+      {showImageOptions && (
+         <div className="p-4 bg-white dark:bg-black border-t border-gray-200 dark:border-gray-800 text-center">
+             <h4 className="font-semibold mb-2">اختر نسبة أبعاد الصورة:</h4>
+             <div className="flex justify-center gap-3">
+                 <button onClick={() => handleImageGeneration('1:1')} className="p-2 border rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">مربع</button>
+                 <button onClick={() => handleImageGeneration('16:9')} className="p-2 border rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">عرضي</button>
+                 <button onClick={() => handleImageGeneration('9:16')} className="p-2 border rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">طولي</button>
+             </div>
+             <button onClick={() => setShowImageOptions(false)} className="text-sm mt-2 text-red-500">إلغاء</button>
+         </div>
+      )}
 
       <footer className="p-4 bg-white dark:bg-black border-t border-gray-200 dark:border-gray-800">
         <div className="max-w-4xl mx-auto">

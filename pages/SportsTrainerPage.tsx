@@ -7,6 +7,7 @@ import { Dumbbell, Sparkles, ArrowLeft, Trash2, Edit, Save, Share2 } from 'lucid
 import { FEATURES } from '../constants';
 import { Type } from '@google/genai';
 import toast from 'react-hot-toast';
+import TTSButton from '../components/TTSButton';
 
 const feature = FEATURES.find(f => f.pageType === 'sportsTrainer')!;
 const PLAN_STORAGE_KEY = 'sportsTrainerPlan';
@@ -84,10 +85,10 @@ const SportsTrainerPage: React.FC<NavigationProps> = ({ navigateTo }) => {
 - **أيام التمرين الأسبوعية:** ${formState.days}
 - **المعدات المتاحة:** ${formState.equipment}
 
-أنشئ جدول تمارين أسبوعي مفصل. يجب أن يكون الرد بتنسيق JSON. يجب أن يحتوي الـ JSON على مفتاح 'weeklyPlan' وهو عبارة عن مصفوفة من الكائنات، كل كائن يمثل يوماً من أيام التمرين ويحتوي على 'day' (e.g., "اليوم الأول"), و 'focus' (e.g., "تمارين الجزء العلوي"), و 'exercises' (مصفوفة من التمارين). كل تمرين يجب أن يحتوي على 'name', 'sets', 'reps', و 'description' تشرح طريقة الأداء الصحيحة. تأكد من تضمين أيام راحة مناسبة.`;
+أنشئ جدول تمارين أسبوعي مفصل واحترافي. يجب أن يكون الرد بتنسيق JSON. يجب أن يحتوي الـ JSON على مفتاح 'weeklyPlan' وهو عبارة عن مصفوفة من الكائنات، كل كائن يمثل يوماً من أيام التمرين ويحتوي على 'day' (e.g., "اليوم الأول"), و 'focus' (e.g., "تمارين الجزء العلوي"), و 'exercises' (مصفوفة من التمارين). كل تمرين يجب أن يحتوي على 'name', 'sets', 'reps', و 'description' تشرح طريقة الأداء الصحيحة بدقة. تأكد من تضمين أيام راحة مناسبة.`;
         
         try {
-            const result = await callGeminiJsonApi(prompt, planSchema);
+            const result = await callGeminiJsonApi(prompt, planSchema, true); // Use Pro model with thinking mode
             if (result && result.weeklyPlan) {
                 setOriginalPlan(result);
                 setEditedPlan(JSON.parse(JSON.stringify(result))); // Deep copy for editing
@@ -146,6 +147,19 @@ const SportsTrainerPage: React.FC<NavigationProps> = ({ navigateTo }) => {
             toast.success('تمت مشاركة خطتك مع المجتمع!');
         }
     };
+    
+    const getPlanDayAsText = (day: WorkoutDay): string => {
+        if (!day) return "";
+        let text = `${day.day}: ${day.focus}.\n`;
+        if (day.exercises && day.exercises.length > 0) {
+            day.exercises.forEach(ex => {
+                text += `${ex.name}: ${ex.sets} مجموعات, ${ex.reps} تكرار. طريقة الأداء: ${ex.description}\n`;
+            });
+        } else {
+            text += "يوم راحة.";
+        }
+        return text;
+    }
 
 
     const renderPlanSetup = () => (
@@ -226,6 +240,10 @@ const SportsTrainerPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                 {activeDayIndex === index && (
                     <div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-black/50">
                         {day.exercises && day.exercises.length > 0 ? (
+                            <>
+                            <div className="flex justify-end mb-2">
+                                <TTSButton textToRead={getPlanDayAsText(day)} />
+                            </div>
                             <ul className="space-y-4">
                                 {day.exercises.map((ex, exIndex) => (
                                 <li key={exIndex} className="p-3 bg-white dark:bg-black rounded-md border dark:border-gray-700">
@@ -238,6 +256,7 @@ const SportsTrainerPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                                 </li>
                                 ))}
                             </ul>
+                            </>
                         ) : (
                             <p className="text-center text-gray-500 dark:text-gray-400">يوم راحة. استرخ واستعد لليوم التالي!</p>
                         )}
@@ -267,7 +286,7 @@ const SportsTrainerPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                 {isLoading && (
                      <div className="text-center p-8 bg-white dark:bg-black rounded-lg shadow-md">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto"></div>
-                        <p className="mt-4 text-gray-600 dark:text-gray-300">...المدرب الذكي يقوم بإعداد خطتك</p>
+                        <p className="mt-4 text-gray-600 dark:text-gray-300">المدرب الرقمي يصمم قوتك...</p>
                     </div>
                 )}
                 {error && (

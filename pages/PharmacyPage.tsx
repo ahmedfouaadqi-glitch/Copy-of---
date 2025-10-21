@@ -177,7 +177,7 @@ const PharmacyPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                         {isLoading && (
                             <div className="text-center p-4">
                                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto"></div>
-                                <p className="mt-4 text-gray-600 dark:text-gray-300">...جاري البحث عن معلومات الدواء</p>
+                                <p className="mt-4 text-gray-600 dark:text-gray-300">الصيدلاني الذكي يراجع بيانات الدواء...</p>
                             </div>
                         )}
 

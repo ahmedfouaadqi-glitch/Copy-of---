@@ -21,7 +21,7 @@ const HomePage: React.FC<NavigationProps> = ({ navigateTo }) => {
       </header>
       <main className="p-4 flex-grow">
         <MorningBriefing />
-        <p className="text-center text-gray-600 dark:text-gray-400 mb-6">تطبيق الحياة</p>
+        <p className="text-center text-gray-600 dark:text-gray-400 mb-6">تطبيق الحياة بروح رقمية</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
           {sortedFeatures.map(feature => (
             <FeatureCard key={feature.pageType} feature={feature} navigateTo={navigateTo} />
@@ -29,7 +29,7 @@ const HomePage: React.FC<NavigationProps> = ({ navigateTo }) => {
         </div>
       </main>
       <footer className="text-center p-4">
-        <p className="text-xs text-gray-500 dark:text-gray-400">صاحب الفكرة والمالك</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">بصمة الروح الرقمية لـ</p>
         <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">احمد معروف</p>
       </footer>
     </div>

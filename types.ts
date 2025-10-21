@@ -1,6 +1,6 @@
 import { LucideIcon } from 'lucide-react';
 
-export type PageType = 'home' | 'imageAnalysis' | 'calorieCounter' | 'smartHealth' | 'pharmacy' | 'healthDiary' | 'chat' | 'myPlants' | 'globalSearch' | 'schedule' | 'beauty' | 'decorations' | 'sportsTrainer' | 'gaming' | 'financial' | 'auto' | 'shoppingList' | 'challenges' | 'communityInspirations' | 'dietPlan' | 'favoriteMovies';
+export type PageType = 'home' | 'imageAnalysis' | 'calorieCounter' | 'smartHealth' | 'pharmacy' | 'healthDiary' | 'chat' | 'myPlants' | 'globalSearch' | 'schedule' | 'beauty' | 'decorations' | 'sportsTrainer' | 'gaming' | 'financial' | 'auto' | 'shoppingList' | 'challenges' | 'communityInspirations' | 'dietPlan' | 'favoriteMovies' | 'imageEditing' | 'videoAnalysis' | 'videoGeneration' | 'liveConversation' | 'transcription';
 
 export type Page =
   | { type: 'home' }
@@ -17,7 +17,12 @@ export type Page =
   | { type: 'challenges' }
   | { type: 'communityInspirations' }
   | { type: 'dietPlan' }
-  | { type: 'favoriteMovies' };
+  | { type: 'favoriteMovies' }
+  | { type: 'imageEditing' }
+  | { type: 'videoAnalysis' }
+  | { type: 'videoGeneration' }
+  | { type: 'liveConversation' }
+  | { type: 'transcription' };
 
 
 export interface NavigationProps {
@@ -65,6 +70,13 @@ export interface QuickAddAction {
     details: string;
 }
 
+export interface PlantJournalEntry {
+    id: string;
+    timestamp: number;
+    photo: string;
+    note: string;
+}
+
 export interface UserPlant {
     id: string;
     name: string;
@@ -74,14 +86,26 @@ export interface UserPlant {
         watering: string;
         fertilizing: string;
     };
+    journal?: PlantJournalEntry[];
 }
 
 export interface GroundingChunk {
-    web: {
+    web?: {
         uri: string;
         title: string;
     };
+    maps?: {
+        uri: string;
+        title: string;
+        placeAnswerSources: {
+            reviewSnippets: {
+                uri: string;
+                text: string;
+            }[];
+        }[];
+    };
 }
+
 
 export interface AnalysisHistoryItem {
     id: string;
