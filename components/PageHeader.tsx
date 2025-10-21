@@ -28,6 +28,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({ navigateTo, title, subTitle, Ic
     red: { bg: 'bg-red-500', text: 'text-red-800', darkText: 'dark:text-red-300' },
     amber: { bg: 'bg-amber-700', text: 'text-amber-900', darkText: 'dark:text-amber-300' },
     blue: { bg: 'bg-blue-500', text: 'text-blue-800', darkText: 'dark:text-blue-300' },
+    cyan: { bg: 'bg-cyan-500', text: 'text-cyan-800', darkText: 'dark:text-cyan-300' },
   };
   const colors = colorClasses[color] || colorClasses.teal;
 

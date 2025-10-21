@@ -41,6 +41,36 @@ export const callGeminiApi = async (prompt: string, images?: { mimeType: string;
 };
 
 /**
+ * Calls Gemini API and expects a JSON response based on a provided schema.
+ * @param prompt - The text prompt.
+ * @param schema - The JSON schema for the expected response.
+ * @returns The parsed JSON object from the response.
+ */
+export const callGeminiJsonApi = async (prompt: string, schema: any): Promise<any> => {
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: 'application/json',
+                responseSchema: schema,
+            },
+        });
+        
+        // Per guidelines, access text directly from the response.
+        const jsonText = response.text.trim();
+        
+        // Basic cleanup, sometimes Gemini wraps it in markdown
+        const cleanedJsonText = jsonText.replace(/^```json\n/, '').replace(/\n```$/, '');
+        return JSON.parse(cleanedJsonText);
+    } catch (error) {
+        console.error("Error calling Gemini JSON API:", error);
+        throw new Error("فشل في توليد الخطة المنظمة. يرجى المحاولة مرة أخرى.");
+    }
+};
+
+
+/**
  * Handles conversational chat with the Gemini API.
  * Manages chat history and system instructions.
  * Uses 'gemini-2.5-flash'.
@@ -178,54 +208,5 @@ export const callGeminiSearchApi = async (query: string): Promise<{ text: string
     } catch (error) {
         console.error("Error in Gemini Search API:", error);
         throw new Error("فشل البحث. يرجى المحاولة مرة أخرى.");
-    }
-};
-
-/**
- * A specialized function to get calorie information for a food item.
- * Used for voice commands.
- * @param foodName - The name of the food item.
- * @returns A string with the nutritional analysis.
- */
-export const analyzeCaloriesForVoice = async (foodName: string): Promise<string> => {
-     try {
-        const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت خبير تغذية. قدم تحليلاً موجزاً جداً للسعرات الحرارية والمكونات الرئيسية (بروتين، كربوهيدرات، دهون) لطعام "${foodName}". كن مباشراً ومختصراً.`;
-        const result = await callGeminiApi(prompt);
-        return result;
-    } catch (error) {
-        console.error("Error analyzing calories for voice:", error);
-        throw new Error("فشل تحليل السعرات الحرارية.");
-    }
-};
-
-
-/**
- * Generates speech from text using the Gemini TTS model.
- * @param text - The text to convert to speech.
- * @returns A base64 encoded string of the audio data.
- */
-export const generateSpeech = async (text: string): Promise<string> => {
-    try {
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash-preview-tts",
-            contents: [{ parts: [{ text: text }] }],
-            config: {
-                responseModalities: [Modality.AUDIO],
-                speechConfig: {
-                    voiceConfig: {
-                        prebuiltVoiceConfig: { voiceName: 'Kore' }, // A pleasant, clear voice
-                    },
-                },
-            },
-        });
-
-        const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-        if (!base64Audio) {
-            throw new Error("No audio data received from API.");
-        }
-        return base64Audio;
-    } catch (error) {
-        console.error("Error generating speech:", error);
-        throw new Error("فشل تحويل النص إلى كلام.");
     }
 };

@@ -8,7 +8,8 @@ import {
   Home,
   Calendar,
   Search,
-  BrainCircuit
+  BrainCircuit,
+  Dumbbell
 } from 'lucide-react';
 import { Feature, PageType } from './types';
 
@@ -403,6 +404,14 @@ export const FEATURES: Feature[] = [
         color: 'orange',
         page: { type: 'calorieCounter' },
         pageType: 'calorieCounter',
+    },
+     {
+        title: 'مركز المستشار الرياضي الذكي',
+        description: 'خطط تمارين مخصصة وحلل أدائك الرياضي',
+        Icon: Dumbbell,
+        color: 'cyan',
+        page: { type: 'sportsTrainer' },
+        pageType: 'sportsTrainer',
     },
     {
         title: 'الصيدلية المنزلية الذكية',

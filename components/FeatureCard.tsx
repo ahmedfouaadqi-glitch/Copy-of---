@@ -19,6 +19,7 @@ const colorClasses: { [key: string]: { bg: string, text: string, border: string,
   red: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', iconBg: 'bg-red-500', darkBg: 'dark:bg-black', darkText: 'dark:text-red-300', darkBorder: 'dark:border-red-500/50' },
   amber: { bg: 'bg-amber-800/10', text: 'text-amber-800', border: 'border-amber-300', iconBg: 'bg-amber-700', darkBg: 'dark:bg-black', darkText: 'dark:text-amber-300', darkBorder: 'dark:border-amber-500/50' },
   blue: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', iconBg: 'bg-blue-500', darkBg: 'dark:bg-black', darkText: 'dark:text-blue-300', darkBorder: 'dark:border-blue-500/50' },
+  cyan: { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-200', iconBg: 'bg-cyan-500', darkBg: 'dark:bg-black', darkText: 'dark:text-cyan-300', darkBorder: 'dark:border-cyan-500/50' },
 };
 
 const FeatureCard: React.FC<FeatureCardProps> = ({ feature, navigateTo }) => {

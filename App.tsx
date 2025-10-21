@@ -9,6 +9,7 @@ import HealthDiaryPage from './pages/HealthDiaryPage';
 import ChatPage from './pages/ChatPage';
 import MyPlantsPage from './pages/MyPlantsPage';
 import GlobalSearchPage from './pages/GlobalSearchPage';
+import SportsTrainerPage from './pages/SportsTrainerPage';
 
 import { ThemeProvider } from './context/ThemeContext';
 import { AnalysisProvider } from './context/AnalysisContext';
@@ -72,6 +73,8 @@ const AppContent: React.FC = () => {
           return <MyPlantsPage navigateTo={navigateTo} />;
       case 'globalSearch':
           return <GlobalSearchPage navigateTo={navigateTo} />;
+      case 'sportsTrainer':
+          return <SportsTrainerPage navigateTo={navigateTo} />;
       case 'schedule': // Handle the new schedule page type
           const scheduleFeature = FEATURES.find(f => f.pageType === currentPage.type);
           if (scheduleFeature) {

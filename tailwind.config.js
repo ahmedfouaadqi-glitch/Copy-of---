@@ -31,7 +31,10 @@ export default {
     'border-purple-500', 'bg-purple-500', 'hover:bg-purple-600', 'bg-purple-50', 'border-purple-200', 'dark:border-purple-500/50', 'text-purple-700', 'dark:text-purple-300', 'hover:border-purple-400', 'dark:hover:border-purple-400', 'text-purple-800', 'dark:text-purple-300',
     
     // Teal (Added)
-    'border-teal-500', 'bg-teal-500', 'hover:bg-teal-600', 'bg-teal-50', 'border-teal-200', 'dark:border-teal-500/50', 'text-teal-700', 'dark:text-teal-300', 'hover:border-teal-400', 'dark:hover:border-teal-400', 'text-teal-800', 'dark:text-teal-300'
+    'border-teal-500', 'bg-teal-500', 'hover:bg-teal-600', 'bg-teal-50', 'border-teal-200', 'dark:border-teal-500/50', 'text-teal-700', 'dark:text-teal-300', 'hover:border-teal-400', 'dark:hover:border-teal-400', 'text-teal-800', 'dark:text-teal-300',
+
+    // Cyan (Added)
+    'border-cyan-500', 'bg-cyan-500', 'hover:bg-cyan-600', 'bg-cyan-50', 'border-cyan-200', 'dark:border-cyan-500/50', 'text-cyan-700', 'dark:text-cyan-300', 'hover:border-cyan-400', 'dark:hover:border-cyan-400', 'text-cyan-800', 'dark:text-cyan-300'
   ],
   darkMode: 'class',
   theme: {

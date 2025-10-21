@@ -3,7 +3,7 @@ import { NavigationProps } from '../types';
 import { callGeminiApi } from '../services/geminiService';
 import { addDiaryEntry } from '../services/diaryService';
 import PageHeader from '../components/PageHeader';
-import { UtensilsCrossed, Sparkles, ChefHat, CheckCircle, Info, X } from 'lucide-react';
+import { UtensilsCrossed, Sparkles, ChefHat, CheckCircle, Info, X, Camera } from 'lucide-react';
 import { FEATURES } from '../constants';
 import Feedback from '../components/Feedback';
 import MarkdownRenderer from '../components/MarkdownRenderer';
@@ -14,7 +14,7 @@ import MediaInput from '../components/MediaInput';
 
 const feature = FEATURES.find(f => f.pageType === 'calorieCounter')!;
 
-type Mode = 'calories' | 'recipe';
+type Mode = 'calories' | 'recipe' | 'visual';
 
 const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const [mode, setMode] = useState<Mode>('calories');
@@ -86,11 +86,24 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     };
 
     const handleSubmit = async () => {
+        if (mode === 'visual' && !localImage) {
+            setError('الرجاء رفع صورة للتقدير البصري.');
+            return;
+        }
         if (!input.trim() && !localImage) return;
 
-        const userQuery = mode === 'calories'
-            ? (localImage ? `تحليل صورة ${input || 'وجبة'}` : input)
-            : `ابتكر وصفة من: ${input}`;
+        let userQuery = '';
+        switch (mode) {
+            case 'calories':
+                userQuery = localImage ? `تحليل صورة ${input || 'وجبة'}` : input;
+                break;
+            case 'recipe':
+                userQuery = `ابتكر وصفة من: ${input}`;
+                break;
+            case 'visual':
+                userQuery = `تقدير بصري للطعام في الصورة مع ملاحظة: ${input}`;
+                break;
+        }
         setInitialUserQuery(userQuery);
 
         resetState(false);
@@ -105,12 +118,19 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                 prompt += `بناءً على الوصف التالي "${input}", `;
             }
             prompt += `قدم تقديراً مفصلاً للسعرات الحرارية والمكونات الرئيسية (بروتين، كربوهhidرات، دهون). قدم نصيحة صحية سريعة حول هذه الوجبة.`;
-        } else { // recipe mode
+        } else if (mode === 'recipe') {
             prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت طاهٍ مبدع. ابتكر وصفة طعام صحية ولذيذة باستخدام المكونات التالية فقط: "${input}". قدم الوصفة بتنسيق واضح يشمل:
             1.  **اسم الوصفة المقترح**
             2.  **المكونات**
             3.  **طريقة التحضير**
             4.  **نصيحة الطاهي**`;
+        } else { // visual mode
+            prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت خبير تغذية ومهندس رؤية حاسوبية. في الصورة، يوجد طعام بجانب بطاقة بنكية قياسية (85.60 مم × 53.98 مم) كمرجع للحجم.
+1.  **تعرف على الطعام:** حدد نوع الطعام في الصورة.
+2.  **تقدير الوزن:** استخدم البطاقة البنكية كمرجع لقياس أبعاد الطعام وتقدير حجمه. بناءً على كثافة الطعام المقدرة، قم بتقدير وزنه بالجرام.
+3.  **التحليل الغذائي:** بناءً على الوزن المقدر، قدم تحليلاً مفصلاً للسعرات الحرارية والمكونات الرئيسية (بروتين، كربوهيدرات، دهون).
+4.  **ملاحظات:** إذا كان هناك أي ملاحظات إضافية من المستخدم "${input}", فخذها في الاعتبار.
+قدم ردك بتنسيق واضح ومنظم.`;
         }
         
         try {
@@ -130,6 +150,23 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
         }
     };
 
+    const getButtonText = () => {
+        switch(mode) {
+            case 'calories': return 'تحليل الوجبة';
+            case 'recipe': return 'ابتكر لي وصفة';
+            case 'visual': return 'تقدير الوزن بالصورة';
+            default: return 'إرسال';
+        }
+    }
+     const getButtonIcon = () => {
+        switch(mode) {
+            case 'calories': return <UtensilsCrossed size={20} />;
+            case 'recipe': return <ChefHat size={20} />;
+            case 'visual': return <Camera size={20} />;
+            default: return <Sparkles size={20}/>;
+        }
+    }
+
     return (
         <div className="bg-gray-50 dark:bg-black min-h-screen">
             <PageHeader onBack={handleBack} navigateTo={navigateTo} title="مستشار الطهي" Icon={UtensilsCrossed} color="orange" />
@@ -146,18 +183,22 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                 <div className="bg-white dark:bg-black p-4 rounded-lg shadow-md mb-6 border border-gray-200 dark:border-gray-800">
                     <div className="flex border border-gray-200 dark:border-gray-700 rounded-lg p-1 mb-4 bg-gray-100 dark:bg-black">
                         <button onClick={() => setMode('calories')} className={`flex-1 p-2 rounded-md text-sm font-semibold transition ${mode === 'calories' ? 'bg-orange-500 text-white shadow' : 'text-gray-600 dark:text-gray-300'}`}>تقدير السعرات</button>
+                        <button onClick={() => setMode('visual')} className={`flex-1 p-2 rounded-md text-sm font-semibold transition ${mode === 'visual' ? 'bg-orange-500 text-white shadow' : 'text-gray-600 dark:text-gray-300'}`}>تقدير بالصورة</button>
                         <button onClick={() => setMode('recipe')} className={`flex-1 p-2 rounded-md text-sm font-semibold transition ${mode === 'recipe' ? 'bg-orange-500 text-white shadow' : 'text-gray-600 dark:text-gray-300'}`}>ابتكار وصفة</button>
                     </div>
 
-                    {mode === 'calories' && (
-                        <MediaInput image={localImage} onImageChange={(img) => setLocalImage(img)} onClearImage={() => { setLocalImage(null); handleClearContext(); }} promptText="ارفع صورة لوجبتك" />
+                    {(mode === 'calories' || mode === 'visual') && (
+                        <>
+                            <MediaInput image={localImage} onImageChange={(img) => setLocalImage(img)} onClearImage={() => { setLocalImage(null); handleClearContext(); }} promptText="ارفع صورة لوجبتك" />
+                            {mode === 'visual' && <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2 bg-yellow-50 dark:bg-black p-2 rounded-md border border-yellow-200 dark:border-yellow-500/30">لأفضل النتائج، ضع بطاقة بنكية بجانب الطعام كمرجع للحجم.</p>}
+                        </>
                     )}
 
                     <div className="relative mt-3">
                         <textarea
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            placeholder={mode === 'calories' ? 'صف وجبتك (اختياري مع الصورة)...' : 'اكتب المكونات المتوفرة لديك...'}
+                            placeholder={mode === 'calories' ? 'صف وجبتك (اختياري مع الصورة)...' : mode === 'visual' ? 'أضف ملاحظات (اختياري)...' : 'اكتب المكونات المتوفرة لديك...'}
                             className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-black text-gray-800 dark:text-gray-200"
                             rows={3}
                         />
@@ -167,8 +208,8 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                         disabled={isLoading || (!input.trim() && !localImage)}
                         className={`w-full p-3 mt-2 rounded-md text-white font-bold transition flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 dark:disabled:bg-gray-600 active:scale-95`}
                     >
-                        {mode === 'calories' ? <UtensilsCrossed size={20} /> : <ChefHat size={20} />}
-                        {mode === 'calories' ? 'تحليل الوجبة' : 'ابتكر لي وصفة'}
+                        {getButtonIcon()}
+                        {getButtonText()}
                     </button>
                 </div>
                 
@@ -189,7 +230,7 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                     <div className="mt-6 bg-orange-50 dark:bg-black p-4 rounded-lg shadow-md border border-orange-200 dark:border-orange-500/50 text-gray-800 dark:text-gray-200">
                         <h3 className="text-lg font-bold mb-2 flex items-center gap-2 text-orange-700 dark:text-orange-300">
                             <Sparkles size={20} />
-                            {mode === 'calories' ? 'التحليل الغذائي' : 'وصفتك المقترحة'}
+                            {mode === 'calories' ? 'التحليل الغذائي' : mode === 'visual' ? 'التقدير البصري' : 'وصفتك المقترحة'}
                         </h3>
                         <MarkdownRenderer content={result} />
 
@@ -208,7 +249,7 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                             initialUserPrompt={initialUserQuery}
                             initialModelContent={result} 
                             context={analysisData} 
-                            systemInstruction={mode === 'calories' ? "أنت خبير تغذية. أجب عن أسئلة المستخدم المتابعة." : "أنت طاهٍ خبير. أجب عن أسئلة المستخدم المتابعة."} 
+                            systemInstruction={mode === 'recipe' ? "أنت طاهٍ خبير. أجب عن أسئلة المستخدم المتابعة." : "أنت خبير تغذية. أجب عن أسئلة المستخدم المتابعة."} 
                         />
                     </div>
                 )}

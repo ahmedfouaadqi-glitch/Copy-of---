@@ -42,18 +42,4 @@ export const TOOLS: FunctionDeclaration[] = [
       required: ['prompt'],
     },
   },
-  {
-    name: 'analyzeCaloriesForVoice',
-    description: 'يحلل السعرات الحرارية لعنصر طعام معين ويقدم معلومات غذائية. استخدم هذا عندما يسأل المستخدم عن السعرات الحرارية في طعام معين.',
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        foodName: {
-          type: Type.STRING,
-          description: 'اسم الطعام المراد تحليل سعراته الحرارية.',
-        },
-      },
-      required: ['foodName'],
-    },
-  },
 ];

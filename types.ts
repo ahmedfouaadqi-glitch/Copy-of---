@@ -1,6 +1,6 @@
 import { LucideIcon } from 'lucide-react';
 
-export type PageType = 'home' | 'imageAnalysis' | 'calorieCounter' | 'smartHealth' | 'pharmacy' | 'healthDiary' | 'chat' | 'myPlants' | 'globalSearch' | 'schedule' | 'beauty' | 'decorations';
+export type PageType = 'home' | 'imageAnalysis' | 'calorieCounter' | 'smartHealth' | 'pharmacy' | 'healthDiary' | 'chat' | 'myPlants' | 'globalSearch' | 'schedule' | 'beauty' | 'decorations' | 'sportsTrainer';
 
 export type Page =
   | { type: 'home' }
@@ -12,7 +12,8 @@ export type Page =
   | { type: 'myPlants' }
   | { type: 'globalSearch' }
   | { type: 'smartHealth', pageType: 'beauty' | 'decorations' | 'schedule' }
-  | { type: 'schedule' };
+  | { type: 'schedule' }
+  | { type: 'sportsTrainer' };
 
 
 export interface NavigationProps {
@@ -84,4 +85,21 @@ export interface AnalysisHistoryItem {
     images: string[];
     analysisTypeLabel: string;
     result: string;
+}
+
+export interface WorkoutExercise {
+    name: string;
+    sets: string;
+    reps: string;
+    description: string;
+}
+
+export interface WorkoutDay {
+    day: string;
+    focus: string;
+    exercises: WorkoutExercise[];
+}
+
+export interface WorkoutPlan {
+    weeklyPlan: WorkoutDay[];
 }
