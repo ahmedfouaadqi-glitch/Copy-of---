@@ -219,8 +219,12 @@ const ImageAnalysisPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                         </div>
                         {images.length > 0 && (
                             <div className="mb-4">
-                                <h4 className="font-semibold text-sm mb-2 text-gray-600 dark:text-gray-400">الصورة التي تم تحليلها:</h4>
-                                <img src={images[0]} alt="Analyzed content" className="rounded-lg max-h-60 w-auto mx-auto shadow-md" />
+                                <h4 className="font-semibold text-sm mb-2 text-gray-600 dark:text-gray-400">الصور التي تم تحليلها:</h4>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    {images.map((img, index) => (
+                                        <img key={index} src={img} alt={`Analyzed content ${index + 1}`} className="rounded-lg w-full h-auto object-cover shadow-md" />
+                                    ))}
+                                </div>
                             </div>
                         )}
                         <MarkdownRenderer content={result} />
