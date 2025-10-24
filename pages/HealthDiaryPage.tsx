@@ -9,6 +9,34 @@ import { NotebookText, Trash2, Calendar, ChevronLeft, ChevronRight, ArchiveX, Pl
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { playSound } from '../services/soundService';
 
+// FIX: Define the missing DiaryEntryCard component.
+const DiaryEntryCard: React.FC<{ entry: DiaryEntry, onDelete: (id: string) => void }> = ({ entry, onDelete }) => (
+    <div className="bg-white dark:bg-black p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 flex items-start gap-4 animate-fade-in">
+        <div className="text-3xl mt-1">{entry.icon}</div>
+        <div className="flex-1">
+            <div className="flex justify-between items-start">
+                <div>
+                    <h4 className="font-bold text-gray-800 dark:text-gray-200">{entry.title}</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {new Date(entry.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                </div>
+                <button onClick={() => onDelete(entry.id)} className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50 dark:hover:bg-gray-800 transition">
+                    <Trash2 size={16} />
+                </button>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 whitespace-pre-wrap">{entry.details}</p>
+        </div>
+        <style>{`
+            @keyframes fade-in {
+              from { opacity: 0; transform: translateY(5px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+            .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
+        `}</style>
+    </div>
+);
+
 const HealthDiaryPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [entries, setEntries] = useState<DiaryEntry[]>([]);
@@ -204,34 +232,6 @@ const HealthDiaryPage: React.FC<NavigationProps> = ({ navigateTo }) => {
         </div>
     );
 };
-
-// FIX: Define the missing DiaryEntryCard component.
-const DiaryEntryCard: React.FC<{ entry: DiaryEntry, onDelete: (id: string) => void }> = ({ entry, onDelete }) => (
-    <div className="bg-white dark:bg-black p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 flex items-start gap-4 animate-fade-in">
-        <div className="text-3xl mt-1">{entry.icon}</div>
-        <div className="flex-1">
-            <div className="flex justify-between items-start">
-                <div>
-                    <h4 className="font-bold text-gray-800 dark:text-gray-200">{entry.title}</h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {new Date(entry.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                </div>
-                <button onClick={() => onDelete(entry.id)} className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50 dark:hover:bg-gray-800 transition">
-                    <Trash2 size={16} />
-                </button>
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 whitespace-pre-wrap">{entry.details}</p>
-        </div>
-        <style>{`
-            @keyframes fade-in {
-              from { opacity: 0; transform: translateY(5px); }
-              to { opacity: 1; transform: translateY(0); }
-            }
-            .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
-        `}</style>
-    </div>
-);
 
 const ManageQuickAddModal: React.FC<{actions: QuickAddAction[], onClose: () => void, onSave: (actions: QuickAddAction[]) => void}> = ({ actions, onClose, onSave }) => {
     const [currentActions, setCurrentActions] = useState(actions);

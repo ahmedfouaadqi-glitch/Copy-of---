@@ -10,10 +10,10 @@ import { getActiveChallenges } from '../services/challengeService';
 import PriorityFeatureCard from '../components/PriorityFeatureCard';
 import { getInsight, dismissInsight, shouldGenerateNewInsight, generateInsight } from '../services/proactiveInsightService';
 import ProactiveInsightCard from '../components/ProactiveInsightCard';
-import DailyReward from '../components/DailyReward';
 import { getDailySpiritMessage } from '../services/spiritMessageService';
 import UserProfileCard from '../components/UserProfileCard';
 import DailyBriefingSection from '../components/DailyBriefingSection';
+
 
 interface HomePageProps extends NavigationProps {
     diaryIndicatorActive: boolean;
@@ -35,11 +35,21 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, diaryIndicatorActive, u
         if (userProfile) {
             setIsBriefingLoading(true);
             try {
-                const message = await getDailySpiritMessage(userProfile);
-                setSpiritMessage(message);
+                // Using Promise.allSettled to ensure all data fetching completes, even if one fails.
+                const results = await Promise.allSettled([
+                    getDailySpiritMessage(userProfile)
+                ]);
+
+                if (results[0].status === 'fulfilled') {
+                    setSpiritMessage(results[0].value);
+                } else {
+                    console.error("Failed to fetch spirit message:", results[0].reason);
+                    setSpiritMessage(null); // Ensure it's null on failure
+                }
+
             } catch (error) {
-                console.error("Failed to fetch spirit message:", error);
-                setSpiritMessage(null); // Ensure it's null on failure
+                console.error("An unexpected error occurred during data fetching:", error);
+                setSpiritMessage(null);
             } finally {
                 setIsBriefingLoading(false);
             }
@@ -127,7 +137,6 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, diaryIndicatorActive, u
         <DailyBriefingSection spiritMessage={spiritMessage} isLoading={isBriefingLoading} />
         <MorningBriefing userProfile={userProfile} />
         {insight && <ProactiveInsightCard insightMessage={insight.message} onDismiss={handleDismissInsight} />}
-        <DailyReward />
         
         {priorityFeature && (
             <>

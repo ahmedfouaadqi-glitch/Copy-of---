@@ -889,12 +889,13 @@ export const ACHIEVEMENTS_LIST: Badge[] = [
         icon: '🧠',
         criteria: { type: 'feature_usage', value: 5 },
     },
+    // FIX: Add missing 'treasure_hunter' badge for the daily reward feature.
     {
         id: 'treasure_hunter',
         title: 'صائد الكنوز',
         description: 'فتحت صندوق الروح اليومي لأول مرة.',
         icon: '🎁',
-        criteria: { type: 'custom', value: 'daily_reward_box' },
+        criteria: { type: 'feature_usage', value: 'daily_reward' }, // This won't be triggered automatically by general feature usage tracking
     },
 ];
 

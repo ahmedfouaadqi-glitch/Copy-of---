@@ -57,10 +57,11 @@ const awardAchievement = (badge: Badge) => {
     ), { duration: 4000 });
 };
 
+// FIX: Add awardSpecificBadgeById function to be used by reward service.
 export const awardSpecificBadgeById = (badgeId: string) => {
-    const badge = ACHIEVEMENTS_LIST.find(b => b.id === badgeId);
-    if (badge) {
-        awardAchievement(badge);
+    const badgeToAward = ACHIEVEMENTS_LIST.find(b => b.id === badgeId);
+    if (badgeToAward) {
+        awardAchievement(badgeToAward);
     }
 };
 

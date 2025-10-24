@@ -215,7 +215,7 @@ export interface Badge {
     description: string;
     icon: string;
     criteria: {
-        type: 'diary_entry_count' | 'feature_usage' | 'challenge_completed' | 'custom';
+        type: 'diary_entry_count' | 'feature_usage' | 'challenge_completed';
         value: number | string; // e.g., 1 for count, 'calorieCounter' for feature, 'water-7' for challenge
     };
 }
@@ -230,6 +230,14 @@ export interface ProactiveInsight {
     timestamp: number;
     message: string;
     isDismissed: boolean;
+}
+
+// FIX: Define SpiritReward type used in rewardService and DailyReward component.
+export interface SpiritReward {
+    type: 'recipe' | 'tip' | 'challenge' | 'quote' | 'badge';
+    title: string;
+    icon: string;
+    content: string;
 }
 
 export interface StyleAdvice {
@@ -256,13 +264,6 @@ export interface WeatherInfo {
     condition: string;
     icon: string;
     isDay: boolean;
-}
-
-export interface SpiritReward {
-    type: 'recipe' | 'challenge' | 'tip' | 'quote' | 'badge';
-    title: string;
-    icon: string;
-    content: string;
 }
 
 export type SpiritMessageType = 'tip' | 'joke' | 'hint' | 'alert';
