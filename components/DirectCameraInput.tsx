@@ -19,6 +19,7 @@ const DirectCameraInput: React.FC<DirectCameraInputProps> = ({ onCapture, onClos
   // It cleans up by stopping the stream when the component unmounts.
   useEffect(() => {
     let currentStream: MediaStream | null = null;
+    const video = videoRef.current;
     setCapturedImage(null); // Ensure preview is cleared when camera starts/switches
 
     const startCamera = async () => {
@@ -27,8 +28,8 @@ const DirectCameraInput: React.FC<DirectCameraInputProps> = ({ onCapture, onClos
           video: { facingMode }
         });
         currentStream = newStream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = newStream;
+        if (video) {
+          video.srcObject = newStream;
         }
       } catch (error) {
         console.error("فشل الوصول إلى الكاميرا:", error);
@@ -43,8 +44,11 @@ const DirectCameraInput: React.FC<DirectCameraInputProps> = ({ onCapture, onClos
       if (currentStream) {
         currentStream.getTracks().forEach(track => track.stop());
       }
+      if (video) {
+        video.srcObject = null;
+      }
     };
-  }, [facingMode, onClose]);
+  }, [facingMode]);
 
 
   const switchCamera = () => {

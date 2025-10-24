@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Upload, Camera, X, ImagePlus, Plus, User, CheckCircle } from 'lucide-react';
 import DirectCameraInput from './DirectCameraInput';
 import { useCamera } from '../context/CameraContext';
@@ -58,13 +58,13 @@ const MediaInput: React.FC<MediaInputProps> = ({
         });
     };
     
-    const handleImageAddition = (newImages: string[]) => {
+    const handleImageAddition = useCallback((newImages: string[]) => {
        if (isMultiMode && setImages) {
             setImages(prev => [...prev, ...newImages].slice(0, 10));
         } else if (onImageChange && newImages.length > 0) {
             onImageChange(newImages[0]);
         }
-    }
+    }, [isMultiMode, onImageChange, setImages]);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         handleFiles(event.target.files);
@@ -79,11 +79,15 @@ const MediaInput: React.FC<MediaInputProps> = ({
         uploadInputRef.current?.click();
     };
 
-    const handleCameraCapture = (capturedImage: string) => {
+    const handleCameraCapture = useCallback((capturedImage: string) => {
         handleImageAddition([capturedImage]);
         setCameraMode(null);
-    };
+    }, [handleImageAddition]);
     
+    const handleCloseCamera = useCallback(() => {
+        setCameraMode(null);
+    }, []);
+
     const openCamera = (mode: 'user' | 'environment') => {
         setIsActionSheetOpen(false);
         setCameraMode(mode);
@@ -176,7 +180,7 @@ const MediaInput: React.FC<MediaInputProps> = ({
             {cameraMode && (
                 <DirectCameraInput 
                     onCapture={handleCameraCapture}
-                    onClose={() => setCameraMode(null)}
+                    onClose={handleCloseCamera}
                     initialFacingMode={cameraMode}
                 />
             )}
