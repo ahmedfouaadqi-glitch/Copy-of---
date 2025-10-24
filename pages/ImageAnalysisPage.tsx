@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { NavigationProps, AnalysisData, AnalysisHistoryItem } from '../types';
+import { NavigationProps, AnalysisData, AppHistoryItem } from '../types';
 import { callGeminiApi } from '../services/geminiService';
-import { getAnalysisHistory, addAnalysisToHistory } from '../services/analysisHistoryService';
+import { getHistory, addHistoryItem } from '../services/historyService';
 import PageHeader from '../components/PageHeader';
 import { Camera, UtensilsCrossed, Leaf, Pill, Sparkles as BeautyIcon, HelpCircle, Sparkles, Send, Clock, ArchiveX } from 'lucide-react';
 import { FEATURES } from '../constants';
@@ -39,11 +39,11 @@ const ImageAnalysisPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [responseId, setResponseId] = useState<string | null>(null);
-    const [analysisHistory, setAnalysisHistory] = useState<AnalysisHistoryItem[]>([]);
+    const [analysisHistory, setAnalysisHistory] = useState<AppHistoryItem[]>([]);
     const { setAnalysisData } = useAnalysis();
 
     useEffect(() => {
-        setAnalysisHistory(getAnalysisHistory());
+        setAnalysisHistory(getHistory('imageAnalysis'));
     }, []);
 
     const resetState = () => {
@@ -58,7 +58,7 @@ const ImageAnalysisPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const handleBack = () => {
         if (result || error || images.length > 0) {
             resetState();
-            setAnalysisHistory(getAnalysisHistory()); // Refresh history
+            setAnalysisHistory(getHistory('imageAnalysis')); // Refresh history
         } else {
             navigateTo({ type: 'home' });
         }
@@ -85,12 +85,6 @@ const ImageAnalysisPage: React.FC<NavigationProps> = ({ navigateTo }) => {
 
             const apiResult = await callGeminiApi(finalPrompt, imagePayloads);
             
-            addAnalysisToHistory({
-                images,
-                analysisTypeLabel: analysisOptions.find(opt => opt.type === analysisType)?.label || 'تحليل',
-                result: apiResult
-            });
-
             if (navTarget) {
                 const analysisContextData: AnalysisData = {
                     analysisType: analysisType,
@@ -107,6 +101,14 @@ const ImageAnalysisPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                     navigateTo({ type: navTarget as any });
                 }
             } else {
+                 addHistoryItem({
+                    type: 'imageAnalysis',
+                    title: analysisOptions.find(opt => opt.type === analysisType)?.label || 'تحليل',
+                    data: {
+                        images,
+                        result: apiResult,
+                    }
+                });
                 setResult(apiResult);
                 setResponseId(`image-analysis-${Date.now()}`);
             }
@@ -119,9 +121,9 @@ const ImageAnalysisPage: React.FC<NavigationProps> = ({ navigateTo }) => {
         }
     }, [images, customPrompt, navigateTo, setAnalysisData]);
 
-    const handleHistoryItemClick = (item: AnalysisHistoryItem) => {
-        setImages(item.images);
-        setResult(item.result);
+    const handleHistoryItemClick = (item: AppHistoryItem) => {
+        setImages(item.data.images);
+        setResult(item.data.result);
         setError(null);
         setIsLoading(false);
         setResponseId(`history-item-${item.id}`);
@@ -183,10 +185,10 @@ const ImageAnalysisPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                                             onClick={() => handleHistoryItemClick(item)}
                                             className="bg-white dark:bg-black p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 flex items-start gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
                                         >
-                                            <img src={item.images[0]} alt="Thumbnail" className="w-16 h-16 rounded-md object-cover"/>
+                                            <img src={item.data.images[0]} alt="Thumbnail" className="w-16 h-16 rounded-md object-cover"/>
                                             <div className="flex-1 overflow-hidden">
-                                                <p className="font-semibold text-gray-700 dark:text-gray-300">{item.analysisTypeLabel}</p>
-                                                <p className="text-sm text-gray-500 dark:text-gray-400 truncate pr-2">{item.result}</p>
+                                                <p className="font-semibold text-gray-700 dark:text-gray-300">{item.title}</p>
+                                                <p className="text-sm text-gray-500 dark:text-gray-400 truncate pr-2">{item.data.result}</p>
                                                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center gap-1">
                                                     <Clock size={12} />
                                                     {new Date(item.timestamp).toLocaleString('ar-EG', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}

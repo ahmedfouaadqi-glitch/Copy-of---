@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { NavigationProps, DietPlan } from '../types';
+import { NavigationProps, DietPlan, AppHistoryItem } from '../types';
 import { callGeminiJsonApi } from '../services/geminiService';
+import { getHistory, addHistoryItem } from '../services/historyService';
 import PageHeader from '../components/PageHeader';
-import { UtensilsCrossed, Sparkles, Trash2 } from 'lucide-react';
+import { UtensilsCrossed, Sparkles, PlusCircle, ArchiveX, Clock, ArrowLeft } from 'lucide-react';
 import { PERSONAL_ADVISOR_BEAUTY_SUB_FEATURES } from '../constants';
 import { Type } from '@google/genai';
 import TTSButton from '../components/TTSButton';
 
 const featureData = PERSONAL_ADVISOR_BEAUTY_SUB_FEATURES.subCategories.find(f => f.id === 'diet-plan')!;
-const PLAN_STORAGE_KEY = 'dietPlan';
 
 const dietPlanSchema = {
   type: Type.OBJECT,
@@ -45,9 +45,11 @@ const dietPlanSchema = {
 
 
 const DietPlanPage: React.FC<NavigationProps> = ({ navigateTo }) => {
-    const [plan, setPlan] = useState<DietPlan | null>(null);
+    const [history, setHistory] = useState<AppHistoryItem[]>([]);
+    const [selectedPlan, setSelectedPlan] = useState<DietPlan | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [view, setView] = useState<'list' | 'form' | 'detail'>('list');
     const [formState, setFormState] = useState({
         goal: 'فقدان الوزن',
         dietType: 'متوازن',
@@ -55,11 +57,29 @@ const DietPlanPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     });
 
     useEffect(() => {
-        const savedPlan = localStorage.getItem(PLAN_STORAGE_KEY);
-        if (savedPlan) {
-            setPlan(JSON.parse(savedPlan));
+        const planHistory = getHistory('dietPlan');
+        setHistory(planHistory);
+        if (planHistory.length === 0) {
+            setView('form');
+        } else {
+            setView('list');
         }
     }, []);
+
+    const handleBack = () => {
+        if (view === 'detail') {
+            setSelectedPlan(null);
+            setView('list');
+        } else if (view === 'form') {
+            if (history.length > 0) {
+                setView('list');
+            } else {
+                navigateTo({ type: 'smartHealth', pageType: 'beauty' });
+            }
+        } else {
+            navigateTo({ type: 'smartHealth', pageType: 'beauty' });
+        }
+    };
 
     const handleFormChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
         setFormState({ ...formState, [e.target.name]: e.target.value });
@@ -68,7 +88,6 @@ const DietPlanPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const generatePlan = async () => {
         setIsLoading(true);
         setError(null);
-        setPlan(null);
 
         const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت خبير تغذية معتمد. أنشئ خطة غذائية مفصلة ومتعمقة لمدة 7 أيام بناءً على المعلومات التالية للمستخدم:
 - **الهدف:** ${formState.goal}
@@ -78,10 +97,16 @@ const DietPlanPage: React.FC<NavigationProps> = ({ navigateTo }) => {
 يجب أن يكون الرد بتنسيق JSON. لكل يوم، قدم وجبات (فطور، غداء، عشاء، ووجبة خفيفة)، مع وصف لكل وجبة وتقدير سعراتها الحرارية. أضف إجمالي السعرات اليومية ونصيحة يومية. كن دقيقاً وعلمياً في اقتراحاتك.`;
         
         try {
-            const result = await callGeminiJsonApi(prompt, dietPlanSchema, true); // Use Pro model with thinking mode
+            const result: DietPlan = await callGeminiJsonApi(prompt, dietPlanSchema, true);
             if (result && result.dailyPlan) {
-                setPlan(result);
-                localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(result));
+                 const newItem = addHistoryItem({
+                    type: 'dietPlan',
+                    title: result.planTitle,
+                    data: result
+                });
+                setHistory(prev => [newItem, ...prev]);
+                setSelectedPlan(result);
+                setView('detail');
             } else {
                 throw new Error("لم يتمكن الذكاء الاصطناعي من إنشاء خطة بالصيغة الصحيحة.");
             }
@@ -92,15 +117,10 @@ const DietPlanPage: React.FC<NavigationProps> = ({ navigateTo }) => {
         }
     };
     
-    const clearPlan = () => {
-        setPlan(null);
-        localStorage.removeItem(PLAN_STORAGE_KEY);
-    }
-    
     const getPlanAsText = (): string => {
-        if (!plan) return "";
-        let text = `${plan.planTitle}\n\n`;
-        plan.dailyPlan.forEach(day => {
+        if (!selectedPlan) return "";
+        let text = `${selectedPlan.planTitle}\n\n`;
+        selectedPlan.dailyPlan.forEach(day => {
             text += `**${day.day} (إجمالي ~${day.dailyTotalCalories} سعرة)**\n`;
             day.meals.forEach(meal => {
                 text += `- **${meal.meal} (~${meal.calories} سعرة):** ${meal.description}\n`;
@@ -111,7 +131,7 @@ const DietPlanPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     };
 
 
-    const renderPlanSetup = () => (
+    const renderForm = () => (
         <div className="bg-white dark:bg-black p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-800">
             <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">أنشئ خطتك الغذائية</h2>
             <div className="space-y-4">
@@ -144,16 +164,16 @@ const DietPlanPage: React.FC<NavigationProps> = ({ navigateTo }) => {
         </div>
     );
     
-    const renderPlanView = () => (
+    const renderDetailView = () => (
       <div>
         <div className="bg-white dark:bg-black p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-800 mb-4">
             <div className="flex justify-between items-start">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">{plan?.planTitle}</h2>
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">{selectedPlan?.planTitle}</h2>
                 <TTSButton textToRead={getPlanAsText()} />
             </div>
         </div>
         <div className="space-y-3">
-        {plan?.dailyPlan.map((day, index) => (
+        {selectedPlan?.dailyPlan.map((day, index) => (
             <div key={index} className="bg-white dark:bg-black rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-4">
                 <h3 className="font-bold text-lg text-indigo-700 dark:text-indigo-300">{day.day}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">إجمالي السعرات: ~{day.dailyTotalCalories} سعرة</p>
@@ -171,33 +191,71 @@ const DietPlanPage: React.FC<NavigationProps> = ({ navigateTo }) => {
             </div>
         ))}
         </div>
-         <div className="mt-6">
-            <button onClick={clearPlan} className="w-full p-3 bg-red-500/90 text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-red-500 transition active:scale-95">
-                <Trash2 size={20} /> مسح الخطة والبدء من جديد
-            </button>
-        </div>
       </div>
     );
 
+    const renderListView = () => (
+         <div>
+            <div className="flex justify-between items-center mb-4">
+                 <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">سجل خططك الغذائية</h2>
+                 <button onClick={() => setView('form')} className="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white text-sm font-semibold rounded-lg hover:bg-indigo-600 transition">
+                    <PlusCircle size={18} /> إنشاء خطة جديدة
+                </button>
+            </div>
+            {history.length > 0 ? (
+                <div className="space-y-3">
+                    {history.map(item => (
+                        <div key={item.id} onClick={() => { setSelectedPlan(item.data); setView('detail');}} className="bg-white dark:bg-black p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900">
+                            <p className="font-bold text-gray-800 dark:text-gray-200">{item.title}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
+                                <Clock size={12} />
+                                {new Date(item.timestamp).toLocaleString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                 <div className="text-center py-8 px-4 bg-white dark:bg-black rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-800">
+                    <ArchiveX size={40} className="mx-auto text-gray-400 dark:text-gray-600 mb-3" />
+                    <p>لا توجد خطط محفوظة بعد.</p>
+                </div>
+            )}
+        </div>
+    );
+    
+    const renderContent = () => {
+        if (isLoading) {
+             return (
+                 <div className="text-center p-8 bg-white dark:bg-black rounded-lg shadow-md">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto"></div>
+                    <p className="mt-4 text-gray-600 dark:text-gray-300">...خبير التغذية يعد خطتك بعناية</p>
+                </div>
+            );
+        }
+        if (error) {
+            return (
+                <div className="bg-red-100 dark:bg-black border border-red-300 dark:border-red-500/50 text-red-800 dark:text-red-300 p-4 rounded-lg shadow-md">
+                    <h3 className="font-bold mb-2">حدث خطأ</h3>
+                    <p>{error}</p>
+                    <button onClick={() => { setError(null); setView(history.length > 0 ? 'list' : 'form'); }} className="mt-2 text-sm text-red-700 dark:text-red-300 underline">حاول مرة أخرى</button>
+                </div>
+            );
+        }
+        
+        switch(view) {
+            case 'form': return renderForm();
+            case 'detail': return renderDetailView();
+            case 'list':
+            default: return renderListView();
+        }
+    };
+
+
     return (
         <div className="bg-gray-50 dark:bg-black min-h-screen">
-            <PageHeader navigateTo={navigateTo} title="خطط غذائية" Icon={UtensilsCrossed} color="indigo" backPage={{ type: 'smartHealth', pageType: 'beauty' }}/>
+            <PageHeader onBack={handleBack} navigateTo={navigateTo} title="خطط غذائية" Icon={UtensilsCrossed} color="indigo" backPage={{ type: 'smartHealth', pageType: 'beauty' }}/>
             <main className="p-4">
-                {isLoading && (
-                     <div className="text-center p-8 bg-white dark:bg-black rounded-lg shadow-md">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto"></div>
-                        <p className="mt-4 text-gray-600 dark:text-gray-300">...خبير التغذية يعد خطتك بعناية</p>
-                    </div>
-                )}
-                {error && (
-                    <div className="bg-red-100 dark:bg-black border border-red-300 dark:border-red-500/50 text-red-800 dark:text-red-300 p-4 rounded-lg shadow-md">
-                        <h3 className="font-bold mb-2">حدث خطأ</h3>
-                        <p>{error}</p>
-                        <button onClick={() => setError(null)} className="mt-2 text-sm text-red-700 dark:text-red-300 underline">حاول مرة أخرى</button>
-                    </div>
-                )}
-
-                {!isLoading && !error && (plan ? renderPlanView() : renderPlanSetup())}
+                {renderContent()}
             </main>
         </div>
     );

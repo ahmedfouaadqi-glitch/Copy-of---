@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import { NavigationProps, GroundingChunk } from '../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { NavigationProps, GroundingChunk, AppHistoryItem } from '../types';
 import { callGeminiSearchApi } from '../services/geminiService';
+import { getHistory, addHistoryItem } from '../services/historyService';
 import PageHeader from '../components/PageHeader';
 import { FEATURES, SEARCH_SUGGESTIONS } from '../constants';
-import { Search, Sparkles, Link, BrainCircuit, Lightbulb, Map } from 'lucide-react';
+import { Search, Sparkles, Link, BrainCircuit, Lightbulb, Map, Clock, ArchiveX } from 'lucide-react';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { useFeatureUsage } from '../hooks/useFeatureUsage';
 import toast from 'react-hot-toast';
@@ -18,7 +19,12 @@ const GlobalSearchPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [useMaps, setUseMaps] = useState(false);
+    const [searchHistory, setSearchHistory] = useState<AppHistoryItem[]>([]);
     const { getUsageSortedFeatures } = useFeatureUsage();
+    
+    useEffect(() => {
+        setSearchHistory(getHistory('globalSearch'));
+    }, []);
 
     const suggestions = useMemo(() => {
         const sortedFeatures = getUsageSortedFeatures(FEATURES);
@@ -37,6 +43,17 @@ const GlobalSearchPage: React.FC<NavigationProps> = ({ navigateTo }) => {
         const shuffled = uniqueSuggestions.sort(() => 0.5 - Math.random());
         return shuffled.slice(0, 3);
     }, [getUsageSortedFeatures]);
+
+    const handleBack = () => {
+        if (result || error) {
+            setResult('');
+            setError(null);
+            setGroundingChunks([]);
+            setInput('');
+        } else {
+            navigateTo({ type: 'home' });
+        }
+    };
 
     const handleSubmit = async (query?: string) => {
         const searchQuery = query || input;
@@ -67,11 +84,27 @@ const GlobalSearchPage: React.FC<NavigationProps> = ({ navigateTo }) => {
             const { text, groundingChunks } = await callGeminiSearchApi(searchQuery, useMaps, location);
             setResult(text);
             setGroundingChunks(groundingChunks);
+
+            const newItem = addHistoryItem({
+                type: 'globalSearch',
+                title: searchQuery,
+                data: { query: searchQuery, result: text, groundingChunks, useMaps }
+            });
+            setSearchHistory(prev => [newItem, ...prev]);
+
         } catch (e) {
             setError(e instanceof Error ? e.message : 'An unexpected error occurred.');
         } finally {
             setIsLoading(false);
         }
+    };
+    
+    const handleHistoryClick = (item: AppHistoryItem) => {
+        setInput(item.title);
+        setResult(item.data.result);
+        setGroundingChunks(item.data.groundingChunks);
+        setUseMaps(item.data.useMaps);
+        window.scrollTo(0, 0); // Scroll to top to see the result
     };
     
     const renderGroundingChunks = () => (
@@ -105,8 +138,10 @@ const GlobalSearchPage: React.FC<NavigationProps> = ({ navigateTo }) => {
 
     return (
         <div className="bg-gray-50 dark:bg-black min-h-screen">
-            <PageHeader navigateTo={navigateTo} title={feature.title} Icon={feature.Icon} color={feature.color} />
+            <PageHeader onBack={handleBack} navigateTo={navigateTo} title={feature.title} Icon={feature.Icon} color={feature.color} />
             <main className="p-4">
+                {!result && !isLoading && !error ? (
+                <>
                 <div className="bg-white dark:bg-black p-4 rounded-lg shadow-md mb-6 border border-gray-200 dark:border-gray-800">
                     <div className="flex items-center gap-2">
                         <input
@@ -146,6 +181,39 @@ const GlobalSearchPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                         </div>
                     </div>
                 </div>
+                 <div className="mt-8">
+                    <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">سجل البحث</h2>
+                    {searchHistory.length > 0 ? (
+                        <div className="space-y-3">
+                            {searchHistory.map(item => (
+                                <div 
+                                    key={item.id} 
+                                    onClick={() => handleHistoryClick(item)}
+                                    className="bg-white dark:bg-black p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 flex items-start gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                                >
+                                    <div className="flex-1 overflow-hidden">
+                                        <p className="font-semibold text-gray-700 dark:text-gray-300 truncate pr-2">{item.title}</p>
+                                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center gap-1">
+                                            <Clock size={12} />
+                                            {new Date(item.timestamp).toLocaleString('ar-EG', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-8 px-4 bg-white dark:bg-black rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-800">
+                            <ArchiveX size={40} className="mx-auto text-gray-400 dark:text-gray-600 mb-3" />
+                            <h3 className="font-semibold text-gray-600 dark:text-gray-300">لا يوجد عمليات بحث سابقة</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                عمليات البحث التي تقوم بها ستظهر هنا.
+                            </p>
+                        </div>
+                    )}
+                </div>
+                </>
+                ) : null}
+
 
                 {isLoading && (
                     <div className="text-center p-4">

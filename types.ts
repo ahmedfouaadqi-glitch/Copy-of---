@@ -117,14 +117,17 @@ export interface GroundingChunk {
     };
 }
 
+// New unified history system
+export type HistoryType = 'imageAnalysis' | 'globalSearch' | 'sportsTrainer' | 'dietPlan';
 
-export interface AnalysisHistoryItem {
+export interface AppHistoryItem {
     id: string;
     timestamp: number;
-    images: string[];
-    analysisTypeLabel: string;
-    result: string;
+    type: HistoryType;
+    title: string;
+    data: any; // Flexible data store for different history types
 }
+
 
 export interface WorkoutExercise {
     name: string;
