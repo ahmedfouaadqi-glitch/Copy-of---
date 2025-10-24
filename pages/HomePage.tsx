@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { NavigationProps, UserProfile, PageType, ProactiveInsight, SpiritMessage } from '../types';
+import { NavigationProps, UserProfile, PageType, ProactiveInsight } from '../types';
 import { FEATURES } from '../constants';
 import FeatureCard from '../components/FeatureCard';
 import { HeartPulse, Settings } from 'lucide-react';
@@ -10,9 +10,8 @@ import { getActiveChallenges } from '../services/challengeService';
 import PriorityFeatureCard from '../components/PriorityFeatureCard';
 import { getInsight, dismissInsight, shouldGenerateNewInsight, generateInsight } from '../services/proactiveInsightService';
 import ProactiveInsightCard from '../components/ProactiveInsightCard';
-import { getDailySpiritMessage } from '../services/spiritMessageService';
 import UserProfileCard from '../components/UserProfileCard';
-import DailyBriefingSection from '../components/DailyBriefingSection';
+import DynamicWelcomeCard from '../components/DynamicWelcomeCard';
 import { getNotificationSettings } from '../services/notificationSettingsService';
 import DailyReward from '../components/DailyReward';
 
@@ -25,8 +24,6 @@ interface HomePageProps extends NavigationProps {
 const HomePage: React.FC<HomePageProps> = ({ navigateTo, diaryIndicatorActive, userProfile }) => {
   const { getUsageSortedFeatures } = useFeatureUsage();
   const [insight, setInsight] = useState<ProactiveInsight | null>(null);
-  const [spiritMessage, setSpiritMessage] = useState<SpiritMessage | null>(null);
-  const [isBriefingLoading, setIsBriefingLoading] = useState(true);
   const [notificationSettings, setNotificationSettings] = useState(getNotificationSettings());
 
   const sortedFeatures = useMemo(() => getUsageSortedFeatures(FEATURES), [getUsageSortedFeatures]);
@@ -44,36 +41,6 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, diaryIndicatorActive, u
             window.removeEventListener('focus', handleFocus);
         };
     }, []);
-
-  useEffect(() => {
-    const fetchData = async () => {
-        if (userProfile) {
-            setIsBriefingLoading(true);
-            try {
-                // Using Promise.allSettled to ensure all data fetching completes, even if one fails.
-                const results = await Promise.allSettled([
-                    getDailySpiritMessage(userProfile)
-                ]);
-
-                if (results[0].status === 'fulfilled') {
-                    setSpiritMessage(results[0].value);
-                } else {
-                    console.error("Failed to fetch spirit message:", results[0].reason);
-                    setSpiritMessage(null); // Ensure it's null on failure
-                }
-
-            } catch (error) {
-                console.error("An unexpected error occurred during data fetching:", error);
-                setSpiritMessage(null);
-            } finally {
-                setIsBriefingLoading(false);
-            }
-        } else {
-            setIsBriefingLoading(false);
-        }
-    };
-    fetchData();
-  }, [userProfile]);
 
 
   useEffect(() => {
@@ -156,7 +123,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, diaryIndicatorActive, u
       </header>
       <main className="p-4 flex-grow max-w-4xl mx-auto w-full">
         <UserProfileCard userProfile={userProfile} onEdit={handleEditProfile} />
-        <DailyBriefingSection spiritMessage={spiritMessage} isLoading={isBriefingLoading} />
+        <DynamicWelcomeCard />
         
         {notificationSettings.dailyReward && <DailyReward />}
         

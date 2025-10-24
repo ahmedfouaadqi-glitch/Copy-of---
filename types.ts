@@ -233,6 +233,14 @@ export interface ProactiveInsight {
     isDismissed: boolean;
 }
 
+// FIX: Define SpiritMessageType and SpiritMessage for the "spirit message" feature.
+export type SpiritMessageType = 'tip' | 'joke' | 'hint' | 'alert';
+
+export interface SpiritMessage {
+    type: SpiritMessageType;
+    content: string;
+}
+
 // FIX: Define SpiritReward type used in rewardService and DailyReward component.
 export interface SpiritReward {
     type: 'recipe' | 'tip' | 'challenge' | 'quote' | 'badge';
@@ -258,20 +266,6 @@ export interface StyleAdvice {
         style: string;
         tip: string;
     };
-}
-
-export interface WeatherInfo {
-    temperature: number;
-    condition: string;
-    icon: string;
-    isDay: boolean;
-}
-
-export type SpiritMessageType = 'tip' | 'joke' | 'hint' | 'alert';
-
-export interface SpiritMessage {
-    type: SpiritMessageType;
-    content: string;
 }
 
 export interface NotificationSettings {
