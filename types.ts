@@ -251,18 +251,18 @@ export interface StyleAdvice {
     };
 }
 
+export interface WeatherInfo {
+    temperature: number;
+    condition: string;
+    icon: string;
+    isDay: boolean;
+}
+
 export interface SpiritReward {
     type: 'recipe' | 'challenge' | 'tip' | 'quote' | 'badge';
     title: string;
     icon: string;
     content: string;
-}
-
-export interface WeatherInfo {
-    temperature: number;
-    condition: string;
-    icon: string; // Emoji for the weather condition
-    isDay: boolean;
 }
 
 export type SpiritMessageType = 'tip' | 'joke' | 'hint' | 'alert';

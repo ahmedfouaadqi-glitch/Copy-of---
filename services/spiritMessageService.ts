@@ -62,7 +62,7 @@ export const getDailySpiritMessage = async (userProfile: UserProfile): Promise<S
     // If no message for today, fetch a new one
     try {
         let messageType: SpiritMessageType;
-        let context: string;
+        let context: string | undefined;
 
         // Smart Hint Logic
         const usageStats = JSON.parse(localStorage.getItem(USAGE_STATS_KEY) || '{}');
@@ -85,14 +85,12 @@ export const getDailySpiritMessage = async (userProfile: UserProfile): Promise<S
                 const mostUsed = Object.entries(usageStats).sort(([,a],[,b]) => (b as any).count - (a as any).count)[0];
                 const mostUsedFeature = FEATURES.find(f => f.pageType === mostUsed[0]);
                 context = `نصيحة متقدمة حول ميزة "${mostUsedFeature?.title || 'مفضلتك'}"`;
-            } else if (messageType === 'tip') {
-                context = userProfile.mainGoal;
-            } else { // joke
-                context = '';
+            } else { // tip or joke
+                context = undefined;
             }
         }
         
-        const content = await getSpiritMessageFromGemini(messageType, context);
+        const content = await getSpiritMessageFromGemini(messageType, userProfile, context);
 
         if (content) {
             const newMessage: SpiritMessage = { type: messageType, content };

@@ -1,5 +1,5 @@
 import { GoogleGenAI, GenerateContentResponse, Part, Modality, Content, Type, GenerateVideosOperation, Video } from "@google/genai";
-import { ChatMessage, DiaryEntry, GroundingChunk, VisualFoodAnalysis, StyleAdvice, SpiritMessageType } from '../types';
+import { ChatMessage, DiaryEntry, GroundingChunk, VisualFoodAnalysis, StyleAdvice, SpiritMessageType, UserProfile } from '../types';
 import { getDiaryEntries } from "./diaryService";
 
 // This file has been significantly refactored to incorporate a wide range of Gemini features
@@ -262,21 +262,30 @@ export const generateMorningBriefing = async (userName: string | null): Promise<
     }
 };
 
-export const getSpiritMessageFromGemini = async (messageType: SpiritMessageType, context: string): Promise<string> => {
-    let prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط وبجملة واحدة قصيرة وموجزة جداً.** أنت "همسة الروح" في تطبيق 'الروح التقنية'.`;
+export const getSpiritMessageFromGemini = async (messageType: SpiritMessageType, userProfile: UserProfile, context?: string): Promise<string> => {
+    let prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط وبجملة واحدة قصيرة وموجزة جداً.** أنت "همسة الروح" في تطبيق 'الروح التقنية'. لديك معلومات عن المستخدم الحالي، استخدمها بذكاء لجعل رسالتك شخصية جداً ومناسبة له.
+
+**معلومات المستخدم:**
+- **الاسم:** ${userProfile.name}
+- **العمر:** ${userProfile.age}
+- **الوزن:** ${userProfile.weight} كجم
+- **المهنة:** ${userProfile.profession}
+- **الهدف الرئيسي:** ${userProfile.mainGoal}
+
+الآن، بناءً على نوع الرسالة المطلوبة، قم بإنشاء محتوى فريد:`;
 
     switch(messageType) {
         case 'tip':
-            prompt += ` بناءً على هدف المستخدم الرئيسي وهو "${context}"، قدم نصيحة واحدة فقط، ملهمة وعملية ومناسبة لهذا اليوم.`;
+            prompt += `\n**نوع الرسالة: نصيحة (tip).** قدم نصيحة واحدة فقط، ملهمة وعملية ومناسبة لهذا اليوم، مع الأخذ في الاعتبار هدف المستخدم ومهنته.`;
             break;
         case 'joke':
-            prompt += ` قدم نكتة قصيرة ومرحة لتبدأ يوم المستخدم بابتسامة.`;
+            prompt += `\n**نوع الرسالة: نكتة (joke).** قدم نكتة قصيرة ومرحة قد تكون مرتبطة بمهنة المستخدم أو اهتماماته لتبدأ يومه بابتسامة.`;
             break;
         case 'hint':
-            if (context.startsWith('نصيحة متقدمة')) {
-                 prompt += ` ${context}. قدم نصيحة احترافية ومتقدمة حول هذه الميزة.`;
+            if (context && context.startsWith('نصيحة متقدمة')) {
+                 prompt += `\n**نوع الرسالة: تلميح متقدم (hint).** ${context}. قدم نصيحة احترافية ومتقدمة حول هذه الميزة، وحاول ربطها بملف المستخدم إن أمكن.`;
             } else {
-                prompt += ` قدم تلميحاً ذكياً ومفيداً حول الميزة التالية لمساعدة المستخدم على اكتشافها: "${context}". كن غامضاً قليلاً ومثيراً للفضول.`;
+                prompt += `\n**نوع الرسالة: تلميح (hint).** قدم تلميحاً ذكياً ومفيداً حول الميزة التالية لمساعدة المستخدم على اكتشافها: "${context}". اجعل التلميح شخصياً ومثيراً للفضول.`;
             }
             break;
         default:

@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { NavigationProps, UserProfile, PageType, ProactiveInsight, WeatherInfo, SpiritMessage } from '../types';
+import { NavigationProps, UserProfile, PageType, ProactiveInsight, SpiritMessage } from '../types';
 import { FEATURES } from '../constants';
 import FeatureCard from '../components/FeatureCard';
 import { HeartPulse } from 'lucide-react';
@@ -11,9 +11,9 @@ import PriorityFeatureCard from '../components/PriorityFeatureCard';
 import { getInsight, dismissInsight, shouldGenerateNewInsight, generateInsight } from '../services/proactiveInsightService';
 import ProactiveInsightCard from '../components/ProactiveInsightCard';
 import DailyReward from '../components/DailyReward';
-import DynamicWelcomeCard from '../components/DynamicWelcomeCard';
-import { getWeatherInfo } from '../services/weatherService';
 import { getDailySpiritMessage } from '../services/spiritMessageService';
+import UserProfileCard from '../components/UserProfileCard';
+import DailyBriefingSection from '../components/DailyBriefingSection';
 
 interface HomePageProps extends NavigationProps {
     diaryIndicatorActive: boolean;
@@ -23,8 +23,8 @@ interface HomePageProps extends NavigationProps {
 const HomePage: React.FC<HomePageProps> = ({ navigateTo, diaryIndicatorActive, userProfile }) => {
   const { getUsageSortedFeatures } = useFeatureUsage();
   const [insight, setInsight] = useState<ProactiveInsight | null>(null);
-  const [weather, setWeather] = useState<WeatherInfo | null>(null);
   const [spiritMessage, setSpiritMessage] = useState<SpiritMessage | null>(null);
+  const [isBriefingLoading, setIsBriefingLoading] = useState(true);
 
   const sortedFeatures = useMemo(() => getUsageSortedFeatures(FEATURES), [getUsageSortedFeatures]);
   const shoppingListCount = getShoppingList().filter(item => !item.isChecked).length;
@@ -33,13 +33,18 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, diaryIndicatorActive, u
   useEffect(() => {
     const fetchData = async () => {
         if (userProfile) {
-            // Fetch weather and spirit message in parallel
-            const [weatherData, messageData] = await Promise.all([
-                getWeatherInfo(),
-                getDailySpiritMessage(userProfile)
-            ]);
-            setWeather(weatherData);
-            setSpiritMessage(messageData);
+            setIsBriefingLoading(true);
+            try {
+                const message = await getDailySpiritMessage(userProfile);
+                setSpiritMessage(message);
+            } catch (error) {
+                console.error("Failed to fetch spirit message:", error);
+                setSpiritMessage(null); // Ensure it's null on failure
+            } finally {
+                setIsBriefingLoading(false);
+            }
+        } else {
+            setIsBriefingLoading(false);
         }
     };
     fetchData();
@@ -118,12 +123,8 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, diaryIndicatorActive, u
         </div>
       </header>
       <main className="p-4 flex-grow max-w-4xl mx-auto w-full">
-        <DynamicWelcomeCard 
-            userProfile={userProfile} 
-            weatherInfo={weather} 
-            spiritMessage={spiritMessage} 
-            onEdit={handleEditProfile} 
-        />
+        <UserProfileCard userProfile={userProfile} onEdit={handleEditProfile} />
+        <DailyBriefingSection spiritMessage={spiritMessage} isLoading={isBriefingLoading} />
         <MorningBriefing userProfile={userProfile} />
         {insight && <ProactiveInsightCard insightMessage={insight.message} onDismiss={handleDismissInsight} />}
         <DailyReward />
