@@ -119,6 +119,14 @@ const ImageAnalysisPage: React.FC<NavigationProps> = ({ navigateTo }) => {
         }
     }, [images, customPrompt, navigateTo, setAnalysisData]);
 
+    const handleHistoryItemClick = (item: AnalysisHistoryItem) => {
+        setImages(item.images);
+        setResult(item.result);
+        setError(null);
+        setIsLoading(false);
+        setResponseId(`history-item-${item.id}`);
+    };
+
     return (
         <div className="bg-gray-50 dark:bg-black min-h-screen">
             <PageHeader onBack={handleBack} navigateTo={navigateTo} title={feature.title} Icon={feature.Icon} color={feature.color} />
@@ -170,7 +178,11 @@ const ImageAnalysisPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                             {analysisHistory.length > 0 ? (
                                 <div className="space-y-3">
                                     {analysisHistory.map(item => (
-                                        <div key={item.id} className="bg-white dark:bg-black p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 flex items-start gap-3">
+                                        <div 
+                                            key={item.id} 
+                                            onClick={() => handleHistoryItemClick(item)}
+                                            className="bg-white dark:bg-black p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 flex items-start gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                                        >
                                             <img src={item.images[0]} alt="Thumbnail" className="w-16 h-16 rounded-md object-cover"/>
                                             <div className="flex-1 overflow-hidden">
                                                 <p className="font-semibold text-gray-700 dark:text-gray-300">{item.analysisTypeLabel}</p>
