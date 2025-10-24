@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Fingerprint, HeartPulse } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { saveUserProfile, setBiometricEnabled, getUserProfile } from '../services/profileService';
+import { saveUserProfile, saveBiometricCredential, getUserProfile, clearBiometricCredential } from '../services/profileService';
 import { UserProfile } from '../types';
 
 interface UserProfileSetupPageProps {
@@ -51,7 +51,7 @@ const UserProfileSetupPage: React.FC<UserProfileSetupPageProps> = ({ onComplete 
                     rp: { name: 'الروح التقنية', id: window.location.hostname },
                     user: {
                         id: userId,
-                        name: profile.name.trim() || 'user',
+                        name: profile.name.trim() || 'user@tech-spirit.app',
                         displayName: profile.name.trim() || 'المستخدم',
                     },
                     pubKeyCredParams: [{ alg: -7, type: 'public-key' }], // ES256
@@ -64,8 +64,8 @@ const UserProfileSetupPage: React.FC<UserProfileSetupPageProps> = ({ onComplete 
                 }
             });
 
-            if (credential) {
-                setBiometricEnabled(true);
+            if (credential && 'rawId' in credential) {
+                saveBiometricCredential((credential as any).rawId);
                 toast.success('تم تفعيل الدخول بالبصمة بنجاح!');
                 return true;
             }
@@ -73,7 +73,7 @@ const UserProfileSetupPage: React.FC<UserProfileSetupPageProps> = ({ onComplete 
         } catch (err) {
             console.error('Biometric registration failed:', err);
             toast.error('فشل تفعيل الدخول بالبصمة. ربما قمت بإلغاء العملية.');
-            setBiometricEnabled(false);
+            clearBiometricCredential();
             return false;
         }
     };

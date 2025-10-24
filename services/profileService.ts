@@ -1,7 +1,24 @@
 import { UserProfile } from '../types';
 
 const PROFILE_KEY = 'userProfile';
-const BIOMETRIC_KEY = 'isBiometricEnabled';
+const BIOMETRIC_CREDENTIAL_ID_KEY = 'biometricCredentialId';
+
+// Helper to convert ArrayBuffer to Base64
+function bufferToBase64(buffer: ArrayBuffer): string {
+    return btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(buffer))));
+}
+
+// Helper to convert Base64 to ArrayBuffer
+export function base64ToBuffer(base64: string): ArrayBuffer {
+    const binaryString = atob(base64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
 
 export const saveUserProfile = (profile: UserProfile): void => {
     try {
@@ -21,11 +38,15 @@ export const getUserProfile = (): UserProfile | null => {
     }
 };
 
-export const setBiometricEnabled = (enabled: boolean): void => {
-    localStorage.setItem(BIOMETRIC_KEY, JSON.stringify(enabled));
+export const saveBiometricCredential = (credentialId: ArrayBuffer): void => {
+    const credentialIdBase64 = bufferToBase64(credentialId);
+    localStorage.setItem(BIOMETRIC_CREDENTIAL_ID_KEY, credentialIdBase64);
 };
 
-export const isBiometricEnabled = (): boolean => {
-    const stored = localStorage.getItem(BIOMETRIC_KEY);
-    return stored ? JSON.parse(stored) : false;
+export const getBiometricCredentialId = (): string | null => {
+    return localStorage.getItem(BIOMETRIC_CREDENTIAL_ID_KEY);
+};
+
+export const clearBiometricCredential = (): void => {
+    localStorage.removeItem(BIOMETRIC_CREDENTIAL_ID_KEY);
 };

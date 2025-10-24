@@ -34,34 +34,37 @@ import BottomNavBar from './components/BottomNavBar';
 import OnboardingGuide from './components/OnboardingGuide';
 import { playSound } from './services/soundService';
 import { getActiveChallenges } from './services/challengeService';
-import { getUserProfile } from './services/profileService';
+import { getUserProfile, getBiometricCredentialId } from './services/profileService';
+import BiometricLockScreen from './components/BiometricLockScreen';
 
+type AppStatus = 'loading' | 'locked' | 'setup' | 'onboarding' | 'ready';
 
 const AppContent: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>({ type: 'home' });
-  const [isLoading, setIsLoading] = useState(true);
-  const [showProfileSetup, setShowProfileSetup] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [appStatus, setAppStatus] = useState<AppStatus>('loading');
   const { isCameraOpen } = useCamera();
   const [diaryIndicatorActive, setDiaryIndicatorActive] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-
   useEffect(() => {
     const timer = setTimeout(() => {
-        setIsLoading(false);
-        playSound('start');
-
         const hasSetup = localStorage.getItem('hasCompletedProfileSetup');
+        const credentialId = getBiometricCredentialId();
+
         if (!hasSetup) {
-            setShowProfileSetup(true);
+            setAppStatus('setup');
+        } else if (credentialId) {
+            setAppStatus('locked');
         } else {
             setUserProfile(getUserProfile());
             const hasOnboarded = localStorage.getItem('hasOnboarded');
             if (!hasOnboarded) {
-                setShowOnboarding(true);
+                setAppStatus('onboarding');
+            } else {
+                setAppStatus('ready');
             }
         }
+        playSound('start');
     }, 1500);
     
     // Indicator logic
@@ -76,26 +79,30 @@ const AppContent: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
   
+  const proceedToApp = () => {
+      setUserProfile(getUserProfile());
+      const hasOnboarded = localStorage.getItem('hasOnboarded');
+      if (!hasOnboarded) {
+          setAppStatus('onboarding');
+      } else {
+          setAppStatus('ready');
+      }
+  };
+
   const handleProfileSave = () => {
-    const hasSetup = localStorage.getItem('hasCompletedProfileSetup');
-    if (!hasSetup) {
-        localStorage.setItem('hasCompletedProfileSetup', 'true');
-        setShowProfileSetup(false);
-        const hasOnboarded = localStorage.getItem('hasOnboarded');
-        if (!hasOnboarded) {
-            setShowOnboarding(true);
-        }
-    }
+    localStorage.setItem('hasCompletedProfileSetup', 'true');
     const updatedProfile = getUserProfile();
-    setUserProfile(updatedProfile); // Refresh profile after setup or edit
-    if (currentPage.type === 'userProfileSetup') {
-        setCurrentPage({ type: 'home' }); // Navigate back home after saving
-    }
+    setUserProfile(updatedProfile);
+    proceedToApp();
   };
 
   const handleOnboardingComplete = () => {
     localStorage.setItem('hasOnboarded', 'true');
-    setShowOnboarding(false);
+    setAppStatus('ready');
+  };
+  
+  const handleUnlock = () => {
+      proceedToApp();
   };
 
   const navigateTo = (page: Page) => {
@@ -167,23 +174,33 @@ const AppContent: React.FC = () => {
     }
   };
   
-  if (isLoading) {
-    return <SplashScreen />;
+  switch (appStatus) {
+      case 'loading':
+        return <SplashScreen />;
+      case 'locked':
+        return <BiometricLockScreen onUnlock={handleUnlock} />;
+      case 'setup':
+        return <UserProfileSetupPage onComplete={handleProfileSave} />;
+      case 'onboarding':
+        return (
+            <div className="bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 min-h-screen font-sans">
+                <div className="pb-20">
+                    <HomePage navigateTo={navigateTo} diaryIndicatorActive={diaryIndicatorActive} userProfile={userProfile} />
+                </div>
+                {!isCameraOpen && <BottomNavBar currentPage={currentPage} navigateTo={navigateTo} diaryIndicatorActive={diaryIndicatorActive} />}
+                <OnboardingGuide onComplete={handleOnboardingComplete} />
+            </div>
+        );
+      case 'ready':
+         return (
+              <div className="bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 min-h-screen font-sans">
+                  <div className="pb-20"> {/* Padding for classic nav bar */}
+                      {renderPage()}
+                  </div>
+                  {!isCameraOpen && <BottomNavBar currentPage={currentPage} navigateTo={navigateTo} diaryIndicatorActive={diaryIndicatorActive} />}
+              </div>
+          );
   }
-  
-  if (showProfileSetup) {
-    return <UserProfileSetupPage onComplete={handleProfileSave} />;
-  }
-  
-  return (
-      <div className="bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 min-h-screen font-sans">
-          <div className="pb-20"> {/* Padding for classic nav bar */}
-              {renderPage()}
-          </div>
-          {!isCameraOpen && <BottomNavBar currentPage={currentPage} navigateTo={navigateTo} diaryIndicatorActive={diaryIndicatorActive} />}
-           {showOnboarding && <OnboardingGuide onComplete={handleOnboardingComplete} />}
-      </div>
-  );
 }
 
 
