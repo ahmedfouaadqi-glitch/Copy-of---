@@ -262,18 +262,22 @@ export const generateMorningBriefing = async (userName: string | null): Promise<
     }
 };
 
-export const getSpiritMessageFromGemini = async (messageType: SpiritMessageType, userGoal: string): Promise<string> => {
+export const getSpiritMessageFromGemini = async (messageType: SpiritMessageType, context: string): Promise<string> => {
     let prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط وبجملة واحدة قصيرة وموجزة جداً.** أنت "همسة الروح" في تطبيق 'الروح التقنية'.`;
 
     switch(messageType) {
         case 'tip':
-            prompt += ` بناءً على هدف المستخدم الرئيسي وهو "${userGoal}"، قدم نصيحة واحدة فقط، ملهمة وعملية ومناسبة لهذا اليوم.`;
+            prompt += ` بناءً على هدف المستخدم الرئيسي وهو "${context}"، قدم نصيحة واحدة فقط، ملهمة وعملية ومناسبة لهذا اليوم.`;
             break;
         case 'joke':
             prompt += ` قدم نكتة قصيرة ومرحة لتبدأ يوم المستخدم بابتسامة.`;
             break;
         case 'hint':
-            prompt += ` قدم تلميحاً ذكياً ومفيداً حول إحدى ميزات التطبيق لمساعدة المستخدم على اكتشافه بشكل أفضل. كن غامضاً قليلاً ومثيراً للفضول.`;
+            if (context.startsWith('نصيحة متقدمة')) {
+                 prompt += ` ${context}. قدم نصيحة احترافية ومتقدمة حول هذه الميزة.`;
+            } else {
+                prompt += ` قدم تلميحاً ذكياً ومفيداً حول الميزة التالية لمساعدة المستخدم على اكتشافها: "${context}". كن غامضاً قليلاً ومثيراً للفضول.`;
+            }
             break;
         default:
             return "كل يوم هو فرصة جديدة. استثمرها بحكمة.";

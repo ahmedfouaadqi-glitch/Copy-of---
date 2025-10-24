@@ -1,8 +1,10 @@
 import { SpiritMessage, SpiritMessageType, UserProfile, DiaryEntry } from '../types';
 import { getSpiritMessageFromGemini } from './geminiService';
 import { getDiaryEntries } from './diaryService';
+import { FEATURES } from '../constants';
 
 const MESSAGE_KEY = 'dailySpiritMessage';
+const USAGE_STATS_KEY = 'featureUsageStats';
 
 interface StoredMessage {
     date: string; // YYYY-MM-DD
@@ -33,8 +35,6 @@ const getLocalAlert = (): SpiritMessage | null => {
         }
     }
     
-    // More local alerts can be added here
-    
     return null;
 }
 
@@ -61,13 +61,41 @@ export const getDailySpiritMessage = async (userProfile: UserProfile): Promise<S
 
     // If no message for today, fetch a new one
     try {
-        const messageTypes: SpiritMessageType[] = ['tip', 'joke', 'hint'];
-        const randomType = messageTypes[Math.floor(Math.random() * messageTypes.length)];
+        let messageType: SpiritMessageType;
+        let context: string;
+
+        // Smart Hint Logic
+        const usageStats = JSON.parse(localStorage.getItem(USAGE_STATS_KEY) || '{}');
+        const allFeaturePageTypes = FEATURES.map(f => f.pageType);
+        const usedFeaturePageTypes = Object.keys(usageStats);
+        const unusedFeatures = FEATURES.filter(f => !usedFeaturePageTypes.includes(f.pageType) && !['home', 'chat', 'imageAnalysis', 'globalSearch', 'healthDiary'].includes(f.pageType));
+
+        if (unusedFeatures.length > 0) {
+            // Prioritize showing hints for unused features
+            messageType = 'hint';
+            const randomUnusedFeature = unusedFeatures[Math.floor(Math.random() * unusedFeatures.length)];
+            context = randomUnusedFeature.title;
+        } else {
+            // If all features used, choose randomly between tip, joke, or a "pro tip" hint
+            const messageTypes: SpiritMessageType[] = ['tip', 'joke', 'hint'];
+            messageType = messageTypes[Math.floor(Math.random() * messageTypes.length)];
+
+            if (messageType === 'hint') {
+                // Generate a pro tip for the most used feature
+                const mostUsed = Object.entries(usageStats).sort(([,a],[,b]) => (b as any).count - (a as any).count)[0];
+                const mostUsedFeature = FEATURES.find(f => f.pageType === mostUsed[0]);
+                context = `نصيحة متقدمة حول ميزة "${mostUsedFeature?.title || 'مفضلتك'}"`;
+            } else if (messageType === 'tip') {
+                context = userProfile.mainGoal;
+            } else { // joke
+                context = '';
+            }
+        }
         
-        const content = await getSpiritMessageFromGemini(randomType, userProfile.mainGoal);
+        const content = await getSpiritMessageFromGemini(messageType, context);
 
         if (content) {
-            const newMessage: SpiritMessage = { type: randomType, content };
+            const newMessage: SpiritMessage = { type: messageType, content };
             const newStoredMessage: StoredMessage = { date: todayStr, message: newMessage };
             localStorage.setItem(MESSAGE_KEY, JSON.stringify(newStoredMessage));
             return newMessage;

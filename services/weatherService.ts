@@ -1,16 +1,6 @@
-import { GoogleGenAI, Type } from "@google/genai";
 import { WeatherInfo } from '../types';
 import toast from 'react-hot-toast';
-
-const weatherSchema = {
-    type: Type.OBJECT,
-    properties: {
-        temperature: { type: Type.NUMBER, description: "درجة الحرارة الحالية بالدرجة المئوية." },
-        condition: { type: Type.STRING, description: "وصف موجز لحالة الطقس (مثال: مشمس, غائم جزئياً)." },
-        icon: { type: Type.STRING, description: "رمز تعبيري (emoji) واحد فقط يمثل حالة الطقس (مثال: ☀️, ☁️, 🌦️)." },
-    },
-    required: ["temperature", "condition", "icon"],
-};
+import { callGeminiSearchApi } from './geminiService';
 
 const handleWeatherError = (error: any): string => {
     console.error("Weather Service Error:", error);
@@ -19,6 +9,24 @@ const handleWeatherError = (error: any): string => {
     }
     return "فشل جلب معلومات الطقس.";
 };
+
+// Simple regex to parse the expected output format
+const parseWeatherText = (text: string): Omit<WeatherInfo, 'isDay'> | null => {
+    const tempMatch = text.match(/(\d+\.?\d*)\s*°C/);
+    const conditionMatch = text.match(/(مشمس|غائم|ممطر|عاصف|ضبابي|مثلج|صاف|غائم جزئياً)/);
+    const iconMatch = text.match(/([☀️☁️🌧️🌦️ snowy:❄️ foggy:🌫️ windy:💨🌙])/); // More robust emoji matching
+
+    if (tempMatch && tempMatch[1] && conditionMatch && conditionMatch[1] && iconMatch && iconMatch[1]) {
+        return {
+            temperature: parseFloat(tempMatch[1]),
+            condition: conditionMatch[1],
+            icon: iconMatch[1],
+        };
+    }
+    console.warn("Could not parse weather text:", text);
+    return null;
+}
+
 
 export const getWeatherInfo = async (): Promise<WeatherInfo | null> => {
     let location: { latitude: number; longitude: number; };
@@ -38,27 +46,22 @@ export const getWeatherInfo = async (): Promise<WeatherInfo | null> => {
     }
 
     try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
-        const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت خبير أرصاد جوية. بناءً على إحداثيات الموقع التالية: خط العرض ${location.latitude} وخط الطول ${location.longitude}, قدم حالة الطقس الحالية بتنسيق JSON.`;
+        const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** باستخدام بحث Google المباشر، ما هي حالة الطقس الحالية والدقيقة في الموقع ذي الإحداثيات: خط العرض ${location.latitude} وخط الطول ${location.longitude}؟
+        يجب أن يحتوي ردك على درجة الحرارة بالدرجة المئوية، ووصف قصير للحالة باللغة العربية، ورمز تعبيري (emoji) واحد فقط يمثل الحالة.`;
         
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-                responseMimeType: 'application/json',
-                responseSchema: weatherSchema,
-            },
-        });
+        const { text } = await callGeminiSearchApi(prompt, false); // false for useMaps
 
-        const jsonText = response.text.trim();
-        const cleanedJsonText = jsonText.replace(/^```json\n/, '').replace(/\n```$/, '');
-        const weatherDataFromApi = JSON.parse(cleanedJsonText) as Omit<WeatherInfo, 'isDay'>;
+        const parsedData = parseWeatherText(text);
 
+        if (!parsedData) {
+             throw new Error("لم يتمكن الذكاء الاصطناعي من تحليل بيانات الطقس من البحث.");
+        }
+        
         const hour = new Date().getHours();
         const isDay = hour >= 6 && hour < 19; // 6 AM to 7 PM is considered day
 
         const weatherInfo: WeatherInfo = {
-            ...weatherDataFromApi,
+            ...parsedData,
             isDay: isDay
         };
 
