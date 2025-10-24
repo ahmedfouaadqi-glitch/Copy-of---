@@ -52,7 +52,17 @@ export const getWeatherInfo = async (): Promise<WeatherInfo | null> => {
 
         const jsonText = response.text.trim();
         const cleanedJsonText = jsonText.replace(/^```json\n/, '').replace(/\n```$/, '');
-        return JSON.parse(cleanedJsonText) as WeatherInfo;
+        const weatherDataFromApi = JSON.parse(cleanedJsonText) as Omit<WeatherInfo, 'isDay'>;
+
+        const hour = new Date().getHours();
+        const isDay = hour >= 6 && hour < 19; // 6 AM to 7 PM is considered day
+
+        const weatherInfo: WeatherInfo = {
+            ...weatherDataFromApi,
+            isDay: isDay
+        };
+
+        return weatherInfo;
     } catch (error) {
         toast.error(handleWeatherError(error));
         return null;

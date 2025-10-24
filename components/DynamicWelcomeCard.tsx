@@ -16,8 +16,9 @@ const getGreeting = (): string => {
     return 'مساء الخير،';
 };
 
-const WeatherIcon: React.FC<{ icon: string }> = ({ icon }) => {
-    return <span className="text-2xl">{icon}</span>;
+const WeatherIcon: React.FC<{ weather: WeatherInfo }> = ({ weather }) => {
+    const displayIcon = !weather.isDay && weather.icon === '☀️' ? '🌙' : weather.icon;
+    return <span className="text-2xl">{displayIcon}</span>;
 };
 
 const SpiritMessageContent: React.FC<{ spiritMessage: SpiritMessage | null }> = ({ spiritMessage }) => {
@@ -93,7 +94,7 @@ const DynamicWelcomeCard: React.FC<DynamicWelcomeCardProps> = ({ userProfile, we
       <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between gap-4">
         {weatherInfo ? (
             <div className="flex items-center gap-2">
-                <WeatherIcon icon={weatherInfo.icon} />
+                <WeatherIcon weather={weatherInfo} />
                 <div>
                     <p className="font-bold text-lg text-gray-800 dark:text-gray-100">{weatherInfo.temperature}°C</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">{weatherInfo.condition}</p>

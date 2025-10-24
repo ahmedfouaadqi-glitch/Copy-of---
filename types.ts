@@ -262,6 +262,7 @@ export interface WeatherInfo {
     temperature: number;
     condition: string;
     icon: string; // Emoji for the weather condition
+    isDay: boolean;
 }
 
 export type SpiritMessageType = 'tip' | 'joke' | 'hint' | 'alert';
