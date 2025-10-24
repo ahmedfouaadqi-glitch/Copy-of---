@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { NavigationProps } from '../types';
+import { NavigationProps, UserProfile } from '../types';
 import { FEATURES } from '../constants';
 import FeatureCard from '../components/FeatureCard';
 import { HeartPulse } from 'lucide-react';
@@ -10,9 +10,10 @@ import { getActiveChallenges } from '../services/challengeService';
 
 interface HomePageProps extends NavigationProps {
     diaryIndicatorActive: boolean;
+    userProfile: UserProfile | null;
 }
 
-const HomePage: React.FC<HomePageProps> = ({ navigateTo, diaryIndicatorActive }) => {
+const HomePage: React.FC<HomePageProps> = ({ navigateTo, diaryIndicatorActive, userProfile }) => {
   const { getUsageSortedFeatures } = useFeatureUsage();
 
   const sortedFeatures = useMemo(() => getUsageSortedFeatures(FEATURES), [getUsageSortedFeatures]);
@@ -29,7 +30,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, diaryIndicatorActive })
         </div>
       </header>
       <main className="p-4 flex-grow">
-        <MorningBriefing />
+        <MorningBriefing userProfile={userProfile} />
         <p className="text-center text-gray-600 dark:text-gray-400 mb-6">تطبيق الحياة بروح رقمية</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
           {sortedFeatures.map(feature => (

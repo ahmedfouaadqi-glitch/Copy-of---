@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Page } from './types';
+import { Page, UserProfile } from './types';
 import HomePage from './pages/HomePage';
 import ImageAnalysisPage from './pages/ImageAnalysisPage';
 import CalorieCounterPage from './pages/CalorieCounterPage';
@@ -20,6 +20,7 @@ import VideoAnalysisPage from './pages/VideoAnalysisPage';
 import VideoGenerationPage from './pages/VideoGenerationPage';
 import LiveConversationPage from './pages/LiveConversationPage';
 import TranscriptionPage from './pages/TranscriptionPage';
+import UserProfileSetupPage from './pages/UserProfileSetupPage';
 
 
 import { ThemeProvider } from './context/ThemeContext';
@@ -32,25 +33,35 @@ import BottomNavBar from './components/BottomNavBar';
 import OnboardingGuide from './components/OnboardingGuide';
 import { playSound } from './services/soundService';
 import { getActiveChallenges } from './services/challengeService';
+import { getUserProfile } from './services/profileService';
 
 
 const AppContent: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>({ type: 'home' });
   const [isLoading, setIsLoading] = useState(true);
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const { isCameraOpen } = useCamera();
   const [diaryIndicatorActive, setDiaryIndicatorActive] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
 
   useEffect(() => {
     const timer = setTimeout(() => {
         setIsLoading(false);
-        playSound('start'); // Play start sound
-        const hasOnboarded = localStorage.getItem('hasOnboarded');
-        if (!hasOnboarded) {
-            setShowOnboarding(true);
+        playSound('start');
+
+        const hasSetup = localStorage.getItem('hasCompletedProfileSetup');
+        if (!hasSetup) {
+            setShowProfileSetup(true);
+        } else {
+            setUserProfile(getUserProfile());
+            const hasOnboarded = localStorage.getItem('hasOnboarded');
+            if (!hasOnboarded) {
+                setShowOnboarding(true);
+            }
         }
-    }, 1500); // Simulate loading
+    }, 1500);
     
     // Indicator logic
     const lastBriefingDate = localStorage.getItem('lastBriefingShownDate');
@@ -64,6 +75,16 @@ const AppContent: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
   
+  const handleProfileSetupComplete = () => {
+    localStorage.setItem('hasCompletedProfileSetup', 'true');
+    setShowProfileSetup(false);
+    setUserProfile(getUserProfile()); // Refresh profile after setup
+    const hasOnboarded = localStorage.getItem('hasOnboarded');
+    if (!hasOnboarded) {
+        setShowOnboarding(true);
+    }
+  };
+
   const handleOnboardingComplete = () => {
     localStorage.setItem('hasOnboarded', 'true');
     setShowOnboarding(false);
@@ -76,7 +97,7 @@ const AppContent: React.FC = () => {
   const renderPage = () => {
     switch (currentPage.type) {
       case 'home':
-        return <HomePage navigateTo={navigateTo} diaryIndicatorActive={diaryIndicatorActive} />;
+        return <HomePage navigateTo={navigateTo} diaryIndicatorActive={diaryIndicatorActive} userProfile={userProfile} />;
       case 'imageAnalysis':
         return <ImageAnalysisPage navigateTo={navigateTo} />;
       case 'calorieCounter':
@@ -86,7 +107,7 @@ const AppContent: React.FC = () => {
         if (healthFeature) {
             return <SmartHealthPage feature={healthFeature} navigateTo={navigateTo} />;
         }
-        return <HomePage navigateTo={navigateTo} diaryIndicatorActive={diaryIndicatorActive}/>; // Fallback
+        return <HomePage navigateTo={navigateTo} diaryIndicatorActive={diaryIndicatorActive} userProfile={userProfile}/>; // Fallback
       case 'pharmacy':
         return <PharmacyPage navigateTo={navigateTo} />;
       case 'healthDiary':
@@ -126,12 +147,16 @@ const AppContent: React.FC = () => {
         if(possibleFeature && possibleFeature.page.type === 'smartHealth') {
             return <SmartHealthPage feature={possibleFeature} navigateTo={navigateTo} />;
         }
-        return <HomePage navigateTo={navigateTo} diaryIndicatorActive={diaryIndicatorActive} />;
+        return <HomePage navigateTo={navigateTo} diaryIndicatorActive={diaryIndicatorActive} userProfile={userProfile} />;
     }
   };
   
   if (isLoading) {
     return <SplashScreen />;
+  }
+  
+  if (showProfileSetup) {
+    return <UserProfileSetupPage onComplete={handleProfileSetupComplete} />;
   }
   
   return (

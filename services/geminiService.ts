@@ -191,19 +191,20 @@ export const analyzeDiaryEntries = async (): Promise<string> => {
     return await callGeminiProApi(prompt); // Use the Pro model for deep analysis
 };
 
-export const generateMorningBriefing = async (): Promise<string> => {
+export const generateMorningBriefing = async (userName: string | null): Promise<string> => {
+    const name = userName || "يا صديقي";
     try {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const entries = getDiaryEntries(yesterday);
-        if (entries.length === 0) return "**صباح الخير أحمد!** يوم جديد هو فرصة جديدة. لم تسجل أي أنشطة بالأمس، ما رأيك أن تبدأ اليوم بتسجيل وجبة فطور صحية أو نشاط بسيط؟ أتمنى لك يوماً رائعاً!";
+        if (entries.length === 0) return `**صباح الخير ${name}!** يوم جديد هو فرصة جديدة. لم تسجل أي أنشطة بالأمس، ما رأيك أن تبدأ اليوم بتسجيل وجبة فطور صحية أو نشاط بسيط؟ أتمنى لك يوماً رائعاً!`;
         
         const formattedData = entries.map(e => `- ${e.title}: ${e.details}`).join('\n');
-        const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط وبشكل شخصي وموجز جداً.** أنت "رفيق الحياة الاستباقي" في تطبيق صحتك/كي. حلل بيانات يوم أمس من يوميات المستخدم "أحمد"، وقدم له موجز صباحي ذكي ومحفز. يجب أن يكون الموجز قصيراً وشخصياً. - ابدأ بـ "**صباح الخير أحمد!**". - علّق على شيء إيجابي واحد من يوم أمس (إن وجد). - قدم نصيحة واحدة صغيرة ومؤثرة لليوم بناءً على نشاطه الأخير. - كن ودوداً ومشجعاً. لا تتجاوز 3 جمل. **بيانات يوم أمس:**\n${formattedData}`;
+        const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط وبشكل شخصي وموجز جداً.** أنت "رفيق الحياة الاستباقي" في تطبيق صحتك/كي. حلل بيانات يوم أمس من يوميات المستخدم "${name}"، وقدم له موجز صباحي ذكي ومحفز. يجب أن يكون الموجز قصيراً وشخصياً. - ابدأ بـ "**صباح الخير ${name}!**". - علّق على شيء إيجابي واحد من يوم أمس (إن وجد). - قدم نصيحة واحدة صغيرة ومؤثرة لليوم بناءً على نشاطه الأخير. - كن ودوداً ومشجعاً. لا تتجاوز 3 جمل. **بيانات يوم أمس:**\n${formattedData}`;
         return await callGeminiApi(prompt);
     } catch (error) {
         console.error("Error generating morning briefing:", error);
-        return "**صباح الخير أحمد!** أتمنى لك يوماً مليئاً بالصحة والنشاط. تذكر أن كل خطوة صغيرة هي إنجاز بحد ذاتها.";
+        return `**صباح الخير ${name}!** أتمنى لك يوماً مليئاً بالصحة والنشاط. تذكر أن كل خطوة صغيرة هي إنجاز بحد ذاتها.`;
     }
 };
 

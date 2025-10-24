@@ -29,6 +29,14 @@ export interface NavigationProps {
   navigateTo: (page: Page) => void;
 }
 
+export interface UserProfile {
+    name: string;
+    age: number;
+    weight: number;
+    profession: string;
+    mainGoal: string;
+}
+
 export interface Feature {
   title: string;
   description: string;
