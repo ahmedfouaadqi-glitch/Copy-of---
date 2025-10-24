@@ -11,6 +11,7 @@ import { getActiveChallenges } from '../services/challengeService';
 import PriorityFeatureCard from '../components/PriorityFeatureCard';
 import { getInsight, dismissInsight, shouldGenerateNewInsight, generateInsight } from '../services/proactiveInsightService';
 import ProactiveInsightCard from '../components/ProactiveInsightCard';
+import DailyReward from '../components/DailyReward';
 
 interface HomePageProps extends NavigationProps {
     diaryIndicatorActive: boolean;
@@ -100,6 +101,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, diaryIndicatorActive, u
         <MorningBriefing userProfile={userProfile} />
         {insight && <ProactiveInsightCard insightMessage={insight.message} onDismiss={handleDismissInsight} />}
         <UserProfileCard userProfile={userProfile} onEdit={handleEditProfile} />
+        <DailyReward />
         
         {priorityFeature && (
             <>

@@ -57,6 +57,13 @@ const awardAchievement = (badge: Badge) => {
     ), { duration: 4000 });
 };
 
+export const awardSpecificBadgeById = (badgeId: string) => {
+    const badge = ACHIEVEMENTS_LIST.find(b => b.id === badgeId);
+    if (badge) {
+        awardAchievement(badge);
+    }
+};
+
 export const checkAndAwardAchievements = () => {
     const earned = getEarnedAchievements();
     const diaryEntryCount = (() => {

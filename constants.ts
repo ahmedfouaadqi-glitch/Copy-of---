@@ -889,6 +889,13 @@ export const ACHIEVEMENTS_LIST: Badge[] = [
         icon: '🧠',
         criteria: { type: 'feature_usage', value: 5 },
     },
+    {
+        id: 'treasure_hunter',
+        title: 'صائد الكنوز',
+        description: 'فتحت صندوق الروح اليومي لأول مرة.',
+        icon: '🎁',
+        criteria: { type: 'custom', value: 'daily_reward_box' },
+    },
 ];
 
 

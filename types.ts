@@ -215,7 +215,7 @@ export interface Badge {
     description: string;
     icon: string;
     criteria: {
-        type: 'diary_entry_count' | 'feature_usage' | 'challenge_completed';
+        type: 'diary_entry_count' | 'feature_usage' | 'challenge_completed' | 'custom';
         value: number | string; // e.g., 1 for count, 'calorieCounter' for feature, 'water-7' for challenge
     };
 }
@@ -249,4 +249,11 @@ export interface StyleAdvice {
         style: string;
         tip: string;
     };
+}
+
+export interface SpiritReward {
+    type: 'recipe' | 'challenge' | 'tip' | 'quote' | 'badge';
+    title: string;
+    icon: string;
+    content: string;
 }
