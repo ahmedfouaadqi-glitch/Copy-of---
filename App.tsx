@@ -22,6 +22,7 @@ import LiveConversationPage from './pages/LiveConversationPage';
 import TranscriptionPage from './pages/TranscriptionPage';
 import UserProfileSetupPage from './pages/UserProfileSetupPage';
 import AchievementsPage from './pages/AchievementsPage';
+import NotificationSettingsPage from './pages/NotificationSettingsPage';
 
 
 import { ThemeProvider } from './context/ThemeContext';
@@ -163,6 +164,8 @@ const AppContent: React.FC = () => {
           return <UserProfileSetupPage onComplete={handleProfileSave} />;
       case 'achievements':
           return <AchievementsPage navigateTo={navigateTo} />;
+      case 'notificationSettings':
+          return <NotificationSettingsPage navigateTo={navigateTo} />;
       default:
         // Check if it's a smartHealth pageType that was passed without the container type
         const page = currentPage as any;

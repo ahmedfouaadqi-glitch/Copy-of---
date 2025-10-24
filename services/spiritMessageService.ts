@@ -2,6 +2,7 @@ import { SpiritMessage, SpiritMessageType, UserProfile, DiaryEntry } from '../ty
 import { getSpiritMessageFromGemini } from './geminiService';
 import { getDiaryEntries } from './diaryService';
 import { FEATURES } from '../constants';
+import { getNotificationSettings } from './notificationSettingsService';
 
 const MESSAGE_KEY = 'dailySpiritMessage';
 const USAGE_STATS_KEY = 'featureUsageStats';
@@ -20,6 +21,11 @@ const getFormattedDate = (date: Date): string => {
 
 // Check for local, contextual alerts before fetching from API
 const getLocalAlert = (): SpiritMessage | null => {
+    const settings = getNotificationSettings();
+    if (!settings.diaryReminders) {
+        return null;
+    }
+
     const hour = new Date().getHours();
     const today = new Date();
     

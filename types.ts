@@ -1,6 +1,6 @@
 import { LucideIcon } from 'lucide-react';
 
-export type PageType = 'home' | 'imageAnalysis' | 'calorieCounter' | 'smartHealth' | 'pharmacy' | 'healthDiary' | 'chat' | 'myPlants' | 'globalSearch' | 'schedule' | 'beauty' | 'decorations' | 'sportsTrainer' | 'gaming' | 'financial' | 'auto' | 'shoppingList' | 'challenges' | 'communityInspirations' | 'dietPlan' | 'favoriteMovies' | 'imageEditing' | 'videoAnalysis' | 'videoGeneration' | 'liveConversation' | 'transcription' | 'userProfileSetup' | 'achievements';
+export type PageType = 'home' | 'imageAnalysis' | 'calorieCounter' | 'smartHealth' | 'pharmacy' | 'healthDiary' | 'chat' | 'myPlants' | 'globalSearch' | 'schedule' | 'beauty' | 'decorations' | 'sportsTrainer' | 'gaming' | 'financial' | 'auto' | 'shoppingList' | 'challenges' | 'communityInspirations' | 'dietPlan' | 'favoriteMovies' | 'imageEditing' | 'videoAnalysis' | 'videoGeneration' | 'liveConversation' | 'transcription' | 'userProfileSetup' | 'achievements' | 'notificationSettings';
 
 export type Page =
   | { type: 'home' }
@@ -24,7 +24,8 @@ export type Page =
   | { type: 'liveConversation' }
   | { type: 'transcription' }
   | { type: 'userProfileSetup' }
-  | { type: 'achievements' };
+  | { type: 'achievements' }
+  | { type: 'notificationSettings' };
 
 
 export interface NavigationProps {
@@ -271,4 +272,12 @@ export type SpiritMessageType = 'tip' | 'joke' | 'hint' | 'alert';
 export interface SpiritMessage {
     type: SpiritMessageType;
     content: string;
+}
+
+export interface NotificationSettings {
+    morningBriefing: boolean;
+    proactiveInsights: boolean;
+    challengeReminders: boolean;
+    dailyReward: boolean;
+    diaryReminders: boolean;
 }
