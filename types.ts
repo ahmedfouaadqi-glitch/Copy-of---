@@ -263,3 +263,10 @@ export interface WeatherInfo {
     condition: string;
     icon: string; // Emoji for the weather condition
 }
+
+export type SpiritMessageType = 'tip' | 'joke' | 'hint' | 'alert';
+
+export interface SpiritMessage {
+    type: SpiritMessageType;
+    content: string;
+}

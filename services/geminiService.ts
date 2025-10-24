@@ -1,5 +1,5 @@
 import { GoogleGenAI, GenerateContentResponse, Part, Modality, Content, Type, GenerateVideosOperation, Video } from "@google/genai";
-import { ChatMessage, DiaryEntry, GroundingChunk, VisualFoodAnalysis, StyleAdvice } from '../types';
+import { ChatMessage, DiaryEntry, GroundingChunk, VisualFoodAnalysis, StyleAdvice, SpiritMessageType } from '../types';
 import { getDiaryEntries } from "./diaryService";
 
 // This file has been significantly refactored to incorporate a wide range of Gemini features
@@ -262,9 +262,24 @@ export const generateMorningBriefing = async (userName: string | null): Promise<
     }
 };
 
-export const getDailyTip = async (userGoal: string): Promise<string> => {
+export const getSpiritMessageFromGemini = async (messageType: SpiritMessageType, userGoal: string): Promise<string> => {
+    let prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط وبجملة واحدة قصيرة وموجزة جداً.** أنت "همسة الروح" في تطبيق 'الروح التقنية'.`;
+
+    switch(messageType) {
+        case 'tip':
+            prompt += ` بناءً على هدف المستخدم الرئيسي وهو "${userGoal}"، قدم نصيحة واحدة فقط، ملهمة وعملية ومناسبة لهذا اليوم.`;
+            break;
+        case 'joke':
+            prompt += ` قدم نكتة قصيرة ومرحة لتبدأ يوم المستخدم بابتسامة.`;
+            break;
+        case 'hint':
+            prompt += ` قدم تلميحاً ذكياً ومفيداً حول إحدى ميزات التطبيق لمساعدة المستخدم على اكتشافه بشكل أفضل. كن غامضاً قليلاً ومثيراً للفضول.`;
+            break;
+        default:
+            return "كل يوم هو فرصة جديدة. استثمرها بحكمة.";
+    }
+
     try {
-        const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط وبجملة واحدة قصيرة وموجزة.** أنت "همسة الروح" في تطبيق 'الروح التقنية'. بناءً على هدف المستخدم الرئيسي وهو "${userGoal}"، قدم نصيحة واحدة فقط، ملهمة وعملية ومناسبة لهذا اليوم. اجعلها قصيرة جداً لتظهر في بطاقة الترحيب.`;
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -272,7 +287,7 @@ export const getDailyTip = async (userGoal: string): Promise<string> => {
         });
         return response.text;
     } catch (error) {
-        console.error("Error generating daily tip:", error);
+        console.error(`Error generating spirit message of type ${messageType}:`, error);
         return "كل يوم هو فرصة جديدة لتحقيق أهدافك. استثمرها بحكمة.";
     }
 };

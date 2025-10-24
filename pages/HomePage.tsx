@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { NavigationProps, UserProfile, PageType, ProactiveInsight, WeatherInfo } from '../types';
+import { NavigationProps, UserProfile, PageType, ProactiveInsight, WeatherInfo, SpiritMessage } from '../types';
 import { FEATURES } from '../constants';
 import FeatureCard from '../components/FeatureCard';
 import { HeartPulse } from 'lucide-react';
@@ -13,7 +13,7 @@ import ProactiveInsightCard from '../components/ProactiveInsightCard';
 import DailyReward from '../components/DailyReward';
 import DynamicWelcomeCard from '../components/DynamicWelcomeCard';
 import { getWeatherInfo } from '../services/weatherService';
-import { getDailyTip } from '../services/geminiService';
+import { getDailySpiritMessage } from '../services/spiritMessageService';
 
 interface HomePageProps extends NavigationProps {
     diaryIndicatorActive: boolean;
@@ -24,7 +24,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, diaryIndicatorActive, u
   const { getUsageSortedFeatures } = useFeatureUsage();
   const [insight, setInsight] = useState<ProactiveInsight | null>(null);
   const [weather, setWeather] = useState<WeatherInfo | null>(null);
-  const [dailyTip, setDailyTip] = useState<string | null>(null);
+  const [spiritMessage, setSpiritMessage] = useState<SpiritMessage | null>(null);
 
   const sortedFeatures = useMemo(() => getUsageSortedFeatures(FEATURES), [getUsageSortedFeatures]);
   const shoppingListCount = getShoppingList().filter(item => !item.isChecked).length;
@@ -33,13 +33,13 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, diaryIndicatorActive, u
   useEffect(() => {
     const fetchData = async () => {
         if (userProfile) {
-            // Fetch weather and tip in parallel
-            const [weatherData, tipData] = await Promise.all([
+            // Fetch weather and spirit message in parallel
+            const [weatherData, messageData] = await Promise.all([
                 getWeatherInfo(),
-                getDailyTip(userProfile.mainGoal)
+                getDailySpiritMessage(userProfile)
             ]);
             setWeather(weatherData);
-            setDailyTip(tipData);
+            setSpiritMessage(messageData);
         }
     };
     fetchData();
@@ -121,7 +121,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, diaryIndicatorActive, u
         <DynamicWelcomeCard 
             userProfile={userProfile} 
             weatherInfo={weather} 
-            dailyTip={dailyTip} 
+            spiritMessage={spiritMessage} 
             onEdit={handleEditProfile} 
         />
         <MorningBriefing userProfile={userProfile} />
