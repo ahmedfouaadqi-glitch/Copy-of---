@@ -52,17 +52,16 @@ const AppContent: React.FC = () => {
         setIsLoading(false);
         playSound('start');
 
-        // Temporarily disabled profile setup to check sections
-        // const hasSetup = localStorage.getItem('hasCompletedProfileSetup');
-        // if (!hasSetup) {
-        //     setShowProfileSetup(true);
-        // } else {
+        const hasSetup = localStorage.getItem('hasCompletedProfileSetup');
+        if (!hasSetup) {
+            setShowProfileSetup(true);
+        } else {
             setUserProfile(getUserProfile());
             const hasOnboarded = localStorage.getItem('hasOnboarded');
             if (!hasOnboarded) {
                 setShowOnboarding(true);
             }
-        // }
+        }
     }, 1500);
     
     // Indicator logic
@@ -78,15 +77,15 @@ const AppContent: React.FC = () => {
   }, []);
   
   const handleProfileSave = () => {
-    // const hasSetup = localStorage.getItem('hasCompletedProfileSetup');
-    // if (!hasSetup) {
+    const hasSetup = localStorage.getItem('hasCompletedProfileSetup');
+    if (!hasSetup) {
         localStorage.setItem('hasCompletedProfileSetup', 'true');
         setShowProfileSetup(false);
         const hasOnboarded = localStorage.getItem('hasOnboarded');
         if (!hasOnboarded) {
             setShowOnboarding(true);
         }
-    // }
+    }
     const updatedProfile = getUserProfile();
     setUserProfile(updatedProfile); // Refresh profile after setup or edit
     if (currentPage.type === 'userProfileSetup') {
