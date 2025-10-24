@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { NavigationProps, Challenge, UserChallenge, DiaryEntry } from '../types';
 import { CHALLENGES, FEATURES } from '../constants';
 import { getDiaryEntries } from '../services/diaryService';
+import { checkAndAwardAchievements } from '../services/achievementService';
 import PageHeader from '../components/PageHeader';
 import { Plus, Check, Star } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -9,6 +10,7 @@ import toast from 'react-hot-toast';
 const feature = FEATURES.find(f => f.pageType === 'challenges')!;
 
 const USER_CHALLENGES_KEY = 'userActiveChallenges';
+const COMPLETED_CHALLENGES_KEY = 'completedChallenges';
 
 const ChallengesPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const [userChallenges, setUserChallenges] = useState<UserChallenge[]>([]);
@@ -40,11 +42,19 @@ const ChallengesPage: React.FC<NavigationProps> = ({ navigateTo }) => {
         const stored = localStorage.getItem(USER_CHALLENGES_KEY);
         let activeChallenges: UserChallenge[] = stored ? JSON.parse(stored) : [];
         
-        // Recalculate progress on load
-        activeChallenges = activeChallenges.map(challenge => ({
-            ...challenge,
-            progress: calculateProgress(challenge)
-        }));
+        // Recalculate progress and check for completion
+        activeChallenges = activeChallenges.map(challenge => {
+            const newProgress = calculateProgress(challenge);
+            if (newProgress >= challenge.goal && challenge.progress < challenge.goal) {
+                // Challenge just completed
+                const completed = JSON.parse(localStorage.getItem(COMPLETED_CHALLENGES_KEY) || '[]');
+                if (!completed.includes(challenge.id)) {
+                    localStorage.setItem(COMPLETED_CHALLENGES_KEY, JSON.stringify([...completed, challenge.id]));
+                    checkAndAwardAchievements();
+                }
+            }
+            return { ...challenge, progress: newProgress };
+        });
 
         setUserChallenges(activeChallenges);
     }, [calculateProgress]);

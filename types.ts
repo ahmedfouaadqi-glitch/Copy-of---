@@ -1,6 +1,6 @@
 import { LucideIcon } from 'lucide-react';
 
-export type PageType = 'home' | 'imageAnalysis' | 'calorieCounter' | 'smartHealth' | 'pharmacy' | 'healthDiary' | 'chat' | 'myPlants' | 'globalSearch' | 'schedule' | 'beauty' | 'decorations' | 'sportsTrainer' | 'gaming' | 'financial' | 'auto' | 'shoppingList' | 'challenges' | 'communityInspirations' | 'dietPlan' | 'favoriteMovies' | 'imageEditing' | 'videoAnalysis' | 'videoGeneration' | 'liveConversation' | 'transcription';
+export type PageType = 'home' | 'imageAnalysis' | 'calorieCounter' | 'smartHealth' | 'pharmacy' | 'healthDiary' | 'chat' | 'myPlants' | 'globalSearch' | 'schedule' | 'beauty' | 'decorations' | 'sportsTrainer' | 'gaming' | 'financial' | 'auto' | 'shoppingList' | 'challenges' | 'communityInspirations' | 'dietPlan' | 'favoriteMovies' | 'imageEditing' | 'videoAnalysis' | 'videoGeneration' | 'liveConversation' | 'transcription' | 'userProfileSetup' | 'achievements';
 
 export type Page =
   | { type: 'home' }
@@ -22,7 +22,9 @@ export type Page =
   | { type: 'videoAnalysis' }
   | { type: 'videoGeneration' }
   | { type: 'liveConversation' }
-  | { type: 'transcription' };
+  | { type: 'transcription' }
+  | { type: 'userProfileSetup' }
+  | { type: 'achievements' };
 
 
 export interface NavigationProps {
@@ -205,4 +207,46 @@ export interface FavoriteMovie {
     title: string;
     details: string;
     addedDate: number;
+}
+
+export interface Badge {
+    id: string;
+    title: string;
+    description: string;
+    icon: string;
+    criteria: {
+        type: 'diary_entry_count' | 'feature_usage' | 'challenge_completed';
+        value: number | string; // e.g., 1 for count, 'calorieCounter' for feature, 'water-7' for challenge
+    };
+}
+
+export interface Achievement {
+    badgeId: string;
+    earnedDate: number;
+}
+
+export interface ProactiveInsight {
+    id: string;
+    timestamp: number;
+    message: string;
+    isDismissed: boolean;
+}
+
+export interface StyleAdvice {
+    makeup: {
+        title: string;
+        colors: string;
+        technique: string;
+    };
+    accessories: {
+        title:string;
+        jewelry: string;
+        bag: string;
+        shoes: string;
+    };
+    hair: {
+        title: string;
+        style: string;
+        tip: string;
+    };
 }

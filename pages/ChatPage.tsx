@@ -3,14 +3,13 @@ import { NavigationProps, ChatMessage, PageType } from '../types';
 import { callGeminiChatApi, generateImage } from '../services/geminiService';
 import PageHeader from '../components/PageHeader';
 import { FEATURES, SYSTEM_INSTRUCTION_CORE, CHAT_PERSONA_INSTRUCTION } from '../constants';
-import { Send, Paperclip, X, Lightbulb, Image as ImageIcon } from 'lucide-react';
+import { Send, Paperclip, X, Lightbulb, Image as ImageIcon, BrainCircuit } from 'lucide-react';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import SmartTip from '../components/SmartTip';
 import { playSound } from '../services/soundService';
 import { useFeatureUsage } from '../hooks/useFeatureUsage';
 import TTSButton from '../components/TTSButton';
 
-const feature = FEATURES.find(f => f.pageType === 'chat')!;
 const SYSTEM_INSTRUCTION = `${CHAT_PERSONA_INSTRUCTION}\n\n${SYSTEM_INSTRUCTION_CORE}`;
 
 type AspectRatio = '1:1' | '16:9' | '9:16';
@@ -32,7 +31,7 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     if (storedMessages.length === 0) {
       const initialMessage: ChatMessage = {
         role: 'model',
-        content: `**مرحباً أحمد!** أنا 'عقل الروح التقنية'.\nكيف يمكنني مساعدتك اليوم؟`
+        content: `**مرحباً بك!** أنا 'عقل الروح'.\nكيف يمكنني مساعدتك اليوم؟`
       };
       setMessages([initialMessage]);
     } else {
@@ -146,7 +145,7 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
   
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-black">
-      <PageHeader navigateTo={navigateTo} title={feature.title} Icon={feature.Icon} color={feature.color} />
+      <PageHeader navigateTo={navigateTo} title="عقل الروح" Icon={BrainCircuit} color="cyan" />
       
       <main className="flex-1 overflow-y-auto p-4 space-y-4 bg-[url('data:image/svg+xml,%3Csvg%20width=%276%27%20height=%276%27%20viewBox=%270%200%206%206%27%20xmlns=%27http://www.w3.org/2000/svg%27%3E%3Cg%20fill=%27%239C92AC%27%20fill-opacity=%270.07%27%20fill-rule=%27evenodd%27%3E%3Cpath%20d=%27M5%200h1L0%206V5zM6%205v1H5z%27/%3E%3C/g%3E%3C/svg%3E')]">
         <SmartTip
@@ -155,7 +154,7 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
         />
         {messages.map((msg, index) => (
           <div key={index} className={`flex items-end gap-2 animate-message-in ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-md lg:max-w-xl p-3 rounded-2xl shadow-sm ${msg.role === 'user' ? 'bg-blue-500 text-white rounded-br-none' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-bl-none'}`}>
+            <div className={`max-w-md lg:max-w-xl p-3 rounded-2xl shadow-sm ${msg.role === 'user' ? 'bg-cyan-500 text-white rounded-br-none' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-bl-none'}`}>
               {msg.imageUrl && <img src={msg.imageUrl} alt="chat content" className="rounded-lg mb-2 max-h-60" />}
               <MarkdownRenderer content={msg.content} />
               {msg.role === 'model' && msg.content && !msg.content.startsWith('**مرحباً') && <TTSButton textToRead={msg.content} />}
@@ -214,13 +213,13 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                     onChange={(e) => setInput(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="اكتب رسالتك هنا..."
-                    className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500 bg-gray-100 dark:bg-gray-800 dark:border-gray-700 text-gray-800 dark:text-gray-200 resize-none"
+                    className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-cyan-500 bg-gray-100 dark:bg-gray-800 dark:border-gray-700 text-gray-800 dark:text-gray-200 resize-none"
                     rows={1}
                 />
                 <button
                     onClick={() => handleSend(input)}
                     disabled={isLoading || (!input.trim() && !image)}
-                    className="p-3 bg-teal-500 text-white rounded-lg disabled:bg-teal-300 dark:disabled:bg-teal-800 transition-colors"
+                    className="p-3 bg-cyan-500 text-white rounded-lg disabled:bg-cyan-300 dark:disabled:bg-cyan-800 transition-colors"
                 >
                     <Send size={20} />
                 </button>

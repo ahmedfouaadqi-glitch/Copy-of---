@@ -25,7 +25,7 @@ const MovieCard: React.FC<{ movie: FavoriteMovie; onDelete: (id: string) => void
                          <button onClick={() => onDelete(movie.id)} className="text-gray-500 hover:text-red-500 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition">
                             <Trash2 size={18} />
                         </button>
-                        <button onClick={() => setIsExpanded(!isExpanded)} className="text-gray-500 hover:text-blue-500 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                        <button onClick={() => setIsExpanded(!isExpanded)} className="text-gray-500 hover:text-indigo-500 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition">
                             <ChevronDown size={20} className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
                         </button>
                     </div>
@@ -60,7 +60,7 @@ const FavoriteMoviesPage: React.FC<NavigationProps> = ({ navigateTo }) => {
 
     return (
         <div className="bg-gray-50 dark:bg-black min-h-screen">
-            <PageHeader navigateTo={navigateTo} title="أفلامي المفضلة" Icon={Film} color="blue" backPage={{type: 'smartHealth', pageType: 'gaming'}}/>
+            <PageHeader navigateTo={navigateTo} title="أفلامي المفضلة" Icon={Film} color="indigo" backPage={{type: 'smartHealth', pageType: 'gaming'}}/>
             <main className="p-4">
                  <div className="mb-6 bg-white dark:bg-black p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-800">
                     <h2 className="font-bold text-lg text-gray-800 dark:text-gray-200 mb-2">مكتبتك السينمائية</h2>

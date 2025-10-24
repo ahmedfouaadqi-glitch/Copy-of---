@@ -11,7 +11,7 @@ import { useAnalysis } from '../context/AnalysisContext';
 import Feedback from '../components/Feedback';
 import TTSButton from '../components/TTSButton';
 
-const feature = FEATURES.find(f => f.pageType === 'imageAnalysis')!;
+const feature = { title: "عين الروح", Icon: Camera, color: "cyan" };
 
 type AnalysisType = 'food' | 'plant_id' | 'medication' | 'skin' | 'general';
 
@@ -158,7 +158,7 @@ const ImageAnalysisPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                                             placeholder="مثال: هل هذه النبتة سامة للقطط؟"
                                             className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-black text-gray-800 dark:text-gray-200"
                                         />
-                                        <button onClick={() => handleAnalysis('general', analysisOptions.find(o => o.type === 'general')!.prompt)} disabled={!customPrompt.trim()} className="p-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-400">
+                                        <button onClick={() => handleAnalysis('general', analysisOptions.find(o => o.type === 'general')!.prompt)} disabled={!customPrompt.trim()} className="p-3 bg-cyan-500 text-white rounded-md hover:bg-cyan-600 disabled:bg-gray-400">
                                             <Send size={18} />
                                         </button>
                                     </div>
@@ -198,7 +198,7 @@ const ImageAnalysisPage: React.FC<NavigationProps> = ({ navigateTo }) => {
 
                 {isLoading && (
                     <div className="text-center p-4">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto"></div>
                         <p className="mt-4 text-gray-600 dark:text-gray-300">عين الروح تركز الآن...</p>
                     </div>
                 )}
@@ -209,9 +209,9 @@ const ImageAnalysisPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                     </div>
                 )}
                 {result && (
-                     <div className="bg-blue-50 dark:bg-black p-4 rounded-lg shadow-md border border-blue-200 dark:border-blue-500/50 text-gray-800 dark:text-gray-200">
+                     <div className="bg-cyan-50 dark:bg-black p-4 rounded-lg shadow-md border border-cyan-200 dark:border-cyan-500/50 text-gray-800 dark:text-gray-200">
                         <div className="flex justify-between items-start">
-                            <h3 className="text-lg font-bold mb-2 flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                            <h3 className="text-lg font-bold mb-2 flex items-center gap-2 text-cyan-700 dark:text-cyan-300">
                                 <Sparkles size={20} />
                                 نتائج التحليل
                             </h3>

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { NavigationProps, Feature, PageType } from '../types';
-import { callGeminiApi, suggestMovieBasedOnDiary } from '../services/geminiService';
+import { NavigationProps, Feature, PageType, StyleAdvice } from '../types';
+import { callGeminiApi, suggestMovieBasedOnDiary, getStyleAdvice } from '../services/geminiService';
 import { addItemToShoppingList } from '../services/shoppingListService';
 import { addFavoriteMovie } from '../services/movieService';
 import PageHeader from '../components/PageHeader';
-import { Sparkles, ShoppingCart, CheckCircle, Heart } from 'lucide-react';
+import { Sparkles, ShoppingCart, CheckCircle, Heart, Palette, Gem, Scissors } from 'lucide-react';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import Feedback from '../components/Feedback';
 import { PERSONAL_ADVISOR_BEAUTY_SUB_FEATURES, DECORATIONS_SUB_FEATURES, SCHEDULE_SUB_FEATURES, GAMING_ADVISOR_SUB_FEATURES, FINANCIAL_ADVISOR_SUB_FEATURES, AUTO_TECH_ADVISOR_SUB_FEATURES } from '../constants';
@@ -34,6 +34,7 @@ const SmartHealthPage: React.FC<SmartHealthPageProps> = ({ feature, navigateTo }
   const [navigationStack, setNavigationStack] = useState<SubCategory[]>([]);
   const [result, setResult] = useState('');
   const [mainResult, setMainResult] = useState('');
+  const [styleAdvice, setStyleAdvice] = useState<StyleAdvice | null>(null);
   const [shoppingListItems, setShoppingListItems] = useState<string[]>([]);
   const [addedItems, setAddedItems] = useState<string[]>([]);
   const [suggestedMovieTitle, setSuggestedMovieTitle] = useState<string | null>(null);
@@ -43,6 +44,7 @@ const SmartHealthPage: React.FC<SmartHealthPageProps> = ({ feature, navigateTo }
   const [responseId, setResponseId] = useState<string | null>(null);
   const [localImage, setLocalImage] = useState<string | null>(null);
   const [initialUserQuery, setInitialUserQuery] = useState('');
+  const [awaitingStyleAdvisorImage, setAwaitingStyleAdvisorImage] = useState(false);
   
   const { analysisData, setAnalysisData } = useAnalysis();
 
@@ -95,32 +97,29 @@ const SmartHealthPage: React.FC<SmartHealthPageProps> = ({ feature, navigateTo }
   const currentCategories = navigationStack.length > 0 ? navigationStack[navigationStack.length - 1].subCategories : categories;
   const currentSubTitle = navigationStack.length > 0 ? navigationStack.map(item => item.name).join(' > ') : undefined;
 
-  const resetState = () => {
+  const resetResultStates = () => {
     setResult('');
     setMainResult('');
+    setStyleAdvice(null);
     setShoppingListItems([]);
     setAddedItems([]);
     setSuggestedMovieTitle(null);
     setIsMovieAdded(false);
-    setIsLoading(false);
     setError(null);
     setResponseId(null);
-    setLocalImage(null);
     setInitialUserQuery('');
   };
 
   const handleBack = () => {
-    if (result || error) {
-      setResult('');
-      setMainResult('');
-      setShoppingListItems([]);
-      setAddedItems([]);
-      setSuggestedMovieTitle(null);
-      setIsMovieAdded(false);
-      setError(null);
-      setInitialUserQuery('');
+    if (awaitingStyleAdvisorImage) {
+        setAwaitingStyleAdvisorImage(false);
+        return;
+    }
+    if (result || error || styleAdvice) {
+      resetResultStates();
     } else if (navigationStack.length > 0) {
       setNavigationStack(prev => prev.slice(0, -1));
+      setLocalImage(null);
     } else {
       navigateTo({ type: 'home' });
     }
@@ -153,6 +152,36 @@ const SmartHealthPage: React.FC<SmartHealthPageProps> = ({ feature, navigateTo }
         navigateTo(category.page);
         return;
     }
+
+    if (category.prompt === 'special_case_style_advisor') {
+      if (category.requiresImage && !localImage) {
+        setAwaitingStyleAdvisorImage(true);
+        return;
+      }
+      setIsLoading(true);
+      resetResultStates();
+      
+      const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت منسق مظهر شخصي (Personal Stylist) وخبير تجميل. حلل صورة الملابس المرفوعة. بناءً على هذه الملابس فقط، قدم تقريراً متكاملاً ومنسقاً يشمل:
+1.  **اقتراحات المكياج:** ألوان ظلال العيون، أحمر الشفاه، وتقنية المكياج التي تتناغم مع الإطلالة.
+2.  **تنسيق الاكسسوارات:** توصيات محددة لنوع وشكل ولون المجوهرات، الحقيبة، وحتى الحذاء.
+3.  **تسريحة الشعر المناسبة:** اقتراح لتسريحة شعر تعزز من جمال الإطلالة.
+      قدم ردك بتنسيق JSON حصراً.`;
+
+      try {
+          const imagePayload = {
+              mimeType: localImage!.match(/data:(.*);base64,/)?.[1] || 'image/jpeg',
+              data: localImage!.split(',')[1]
+          };
+          const apiResult = await getStyleAdvice(prompt, imagePayload);
+          setStyleAdvice(apiResult);
+          setResponseId(`style-advisor-${Date.now()}`);
+      } catch (e) {
+          setError(e instanceof Error ? e.message : 'An unexpected error occurred.');
+      } finally {
+          setIsLoading(false);
+      }
+      return;
+    }
     
     if (category.subCategories && category.subCategories.length > 0) {
       setNavigationStack([...navigationStack, category]);
@@ -174,7 +203,7 @@ const SmartHealthPage: React.FC<SmartHealthPageProps> = ({ feature, navigateTo }
       }
 
       setIsLoading(true);
-      resetState(); // Reset partially to clear previous results
+      resetResultStates();
 
       try {
         let apiResult = '';
@@ -190,7 +219,6 @@ const SmartHealthPage: React.FC<SmartHealthPageProps> = ({ feature, navigateTo }
         
         setResult(apiResult);
         
-        // Handle shopping list parsing
         if (apiResult.includes(SHOPPING_LIST_HEADER)) {
             const parts = apiResult.split(SHOPPING_LIST_HEADER);
             setMainResult(parts[0]);
@@ -201,7 +229,6 @@ const SmartHealthPage: React.FC<SmartHealthPageProps> = ({ feature, navigateTo }
             setShoppingListItems([]);
         }
 
-        // Handle movie title parsing
         const titleMatch = apiResult.match(/اسم الفيلم:\s*(.*)/);
         if (titleMatch && titleMatch[1]) {
             setSuggestedMovieTitle(titleMatch[1].trim());
@@ -234,7 +261,18 @@ const SmartHealthPage: React.FC<SmartHealthPageProps> = ({ feature, navigateTo }
         color={feature.color} 
       />
       <main className="p-4">
-        {result === '' && !isLoading && !error && (
+        {awaitingStyleAdvisorImage ? (
+            <div className="bg-white dark:bg-black p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-800 animate-fade-in">
+                <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">منسق المظهر الشامل</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">هذه الميزة تتطلب صورة. يرجى رفع صورة لملابسك. بعد اختيار الصورة، عد إلى الخلف واضغط على 'منسق المظهر الشامل' مرة أخرى.</p>
+                <MediaInput
+                    image={localImage}
+                    onImageChange={(img) => setLocalImage(img)}
+                    onClearImage={() => setLocalImage(null)}
+                    promptText="ارفع صورة ملابسك هنا"
+                />
+            </div>
+        ) : !result && !styleAdvice && !isLoading && !error ? (
           <div className="bg-white dark:bg-black p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-800">
              
             {requiresImageForSomeSubcategories && (
@@ -263,7 +301,7 @@ const SmartHealthPage: React.FC<SmartHealthPageProps> = ({ feature, navigateTo }
               })}
             </div>
           </div>
-        )}
+        ) : null }
         
         {isLoading && (
           <div className="text-center p-4">
@@ -291,7 +329,7 @@ const SmartHealthPage: React.FC<SmartHealthPageProps> = ({ feature, navigateTo }
                     <img src={localImage} alt="Analyzed content" className="rounded-lg max-h-60 w-auto mx-auto shadow-md" />
                 </div>
             )}
-            <MarkdownRenderer content={mainResult} />
+            <MarkdownRenderer content={mainResult || result} />
             
             {shoppingListItems.length > 0 && (
                 <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-800">
@@ -336,6 +374,40 @@ const SmartHealthPage: React.FC<SmartHealthPageProps> = ({ feature, navigateTo }
                 systemInstruction={`أنت خبير في ${feature.title}. أجب عن أسئلة المستخدم المتابعة بوضوح.`}
             />
           </div>
+        )}
+        {styleAdvice && (
+             <div className="space-y-4">
+                <div className="bg-white dark:bg-black p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 animate-fade-in">
+                     <h3 className="font-bold text-lg text-pink-700 dark:text-pink-300 mb-2 flex items-center gap-2"><Palette size={20}/> {styleAdvice.makeup.title}</h3>
+                     <p className="text-sm"><strong>الألوان المقترحة:</strong> {styleAdvice.makeup.colors}</p>
+                     <p className="text-sm"><strong>التقنية:</strong> {styleAdvice.makeup.technique}</p>
+                </div>
+                <div className="bg-white dark:bg-black p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 animate-fade-in" style={{animationDelay: '100ms'}}>
+                     <h3 className="font-bold text-lg text-teal-700 dark:text-teal-300 mb-2 flex items-center gap-2"><Gem size={20}/> {styleAdvice.accessories.title}</h3>
+                     <p className="text-sm"><strong>المجوهرات:</strong> {styleAdvice.accessories.jewelry}</p>
+                     <p className="text-sm"><strong>الحقيبة:</strong> {styleAdvice.accessories.bag}</p>
+                     <p className="text-sm"><strong>الحذاء:</strong> {styleAdvice.accessories.shoes}</p>
+                </div>
+                <div className="bg-white dark:bg-black p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 animate-fade-in" style={{animationDelay: '200ms'}}>
+                     <h3 className="font-bold text-lg text-blue-700 dark:text-blue-300 mb-2 flex items-center gap-2"><Scissors size={20}/> {styleAdvice.hair.title}</h3>
+                     <p className="text-sm"><strong>التسريحة:</strong> {styleAdvice.hair.style}</p>
+                     <p className="text-sm"><strong>نصيحة سريعة:</strong> {styleAdvice.hair.tip}</p>
+                </div>
+                {responseId && <Feedback responseId={responseId} />}
+                <FollowUpChat
+                    initialUserPrompt={"حلل هذه الإطلالة"}
+                    initialModelContent={JSON.stringify(styleAdvice)}
+                    context={null}
+                    systemInstruction={`أنت خبير في تنسيق المظهر. أجب عن أسئلة المستخدم المتابعة بوضوح.`}
+                />
+                 <style>{`
+                    @keyframes fade-in {
+                      from { opacity: 0; transform: translateY(10px); }
+                      to { opacity: 1; transform: translateY(0); }
+                    }
+                    .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
+                `}</style>
+            </div>
         )}
       </main>
     </div>

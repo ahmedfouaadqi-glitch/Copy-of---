@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { Feature, PageType } from '../types';
+import { checkAndAwardAchievements } from '../services/achievementService';
 
 const USAGE_STATS_KEY = 'featureUsageStats';
 
@@ -30,6 +31,9 @@ export const useFeatureUsage = () => {
       lastVisited: Date.now() 
     };
     localStorage.setItem(USAGE_STATS_KEY, JSON.stringify(stats));
+    
+    // Check for achievements after tracking usage
+    checkAndAwardAchievements();
   }, [getUsageStats]);
 
   const getUsageSortedFeatures = useCallback((features: Feature[]): Feature[] => {

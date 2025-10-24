@@ -9,7 +9,7 @@ import { useFeatureUsage } from '../hooks/useFeatureUsage';
 import toast from 'react-hot-toast';
 
 
-const feature = FEATURES.find(f => f.pageType === 'globalSearch')!;
+const feature = { title: "بحث الروح", Icon: Search, color: "indigo" };
 
 const GlobalSearchPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const [input, setInput] = useState('');

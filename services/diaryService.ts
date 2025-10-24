@@ -1,4 +1,5 @@
 import { DiaryEntry } from '../types';
+import { checkAndAwardAchievements } from './achievementService';
 
 const DIARY_KEY_PREFIX = 'healthDiary-';
 
@@ -31,6 +32,10 @@ export const addDiaryEntry = (date: Date, newEntryData: Omit<DiaryEntry, 'id' | 
     const updatedEntries = [entry, ...entries];
     const key = DIARY_KEY_PREFIX + getFormattedDate(date);
     localStorage.setItem(key, JSON.stringify(updatedEntries));
+
+    // Check for achievements after adding an entry
+    checkAndAwardAchievements();
+
     return entry;
 };
 

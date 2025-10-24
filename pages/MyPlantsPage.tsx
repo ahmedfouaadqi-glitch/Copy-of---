@@ -54,7 +54,7 @@ const PlantDetailView: React.FC<{ plant: UserPlant; onBack: () => void; onUpdate
     return (
         <div className="animate-fade-in">
              <div className="mb-4">
-                 <button onClick={onBack} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 hover:text-amber-700 dark:hover:text-amber-500 font-semibold">
+                 <button onClick={onBack} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 hover:text-indigo-700 dark:hover:text-indigo-500 font-semibold">
                     <ArrowRight size={18} />
                     العودة إلى كل النباتات
                 </button>
@@ -84,12 +84,12 @@ const PlantDetailView: React.FC<{ plant: UserPlant; onBack: () => void; onUpdate
             </div>
             
             <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm p-4">
-                <h3 className="font-bold text-xl text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2"><BookOpen size={20} className="text-amber-700"/> سجل النمو</h3>
+                <h3 className="font-bold text-xl text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2"><BookOpen size={20} className="text-indigo-500"/> سجل النمو</h3>
                  <div className="space-y-3 mb-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-md border dark:border-gray-800">
                      <h4 className="font-semibold text-gray-700 dark:text-gray-200">إضافة إدخال جديد</h4>
                     <MediaInput image={newJournalPhoto} onImageChange={setNewJournalPhoto} onClearImage={() => setNewJournalPhoto(null)} promptText="أضف صورة جديدة للتوثيق" />
                     <textarea value={newJournalNote} onChange={(e) => setNewJournalNote(e.target.value)} placeholder="أضف ملاحظة (اختياري)..." rows={2} className="w-full mt-2 p-2 border rounded-md bg-white dark:bg-black dark:border-gray-700"></textarea>
-                    <button onClick={handleAddJournalEntry} disabled={!newJournalPhoto} className="w-full p-2 bg-amber-700 text-white rounded-lg hover:bg-amber-800 transition disabled:bg-gray-400">
+                    <button onClick={handleAddJournalEntry} disabled={!newJournalPhoto} className="w-full p-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition disabled:bg-gray-400">
                         إضافة إلى السجل
                     </button>
                 </div>
@@ -187,7 +187,7 @@ const MyPlantsPage: React.FC<NavigationProps> = ({ navigateTo }) => {
 
     return (
         <div className="bg-gray-50 dark:bg-black min-h-screen">
-            <PageHeader navigateTo={navigateTo} title="مجموعتي النباتية" Icon={Leaf} color="amber" backPage={{type: 'smartHealth', pageType: 'decorations'}}/>
+            <PageHeader navigateTo={navigateTo} title="مجموعتي النباتية" Icon={Leaf} color="indigo" backPage={{type: 'smartHealth', pageType: 'decorations'}}/>
             <main className="p-4">
                 {selectedPlant ? (
                     <PlantDetailView 
@@ -199,16 +199,16 @@ const MyPlantsPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                 ) : (
                 <>
                     <div className="mb-6 bg-white dark:bg-black p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-800">
-                        <h2 className="font-bold text-lg text-gray-800 dark:text-gray-200 mb-2 flex items-center gap-2"><PlusCircle size={20} className="text-amber-700" /> إضافة نبتة جديدة</h2>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">استخدم الكاميرا الذكية للتعرف على نبتتك وإضافتها لمجموعتك للحصول على جدول عناية مخصص.</p>
-                        <button onClick={() => navigateTo({ type: 'imageAnalysis' })} className="w-full flex items-center justify-center gap-2 p-3 bg-amber-700 text-white rounded-lg hover:bg-amber-800 transition">
-                        <Camera size={20} /> الذهاب إلى الكاميرا الذكية
+                        <h2 className="font-bold text-lg text-gray-800 dark:text-gray-200 mb-2 flex items-center gap-2"><PlusCircle size={20} className="text-indigo-500" /> إضافة نبتة جديدة</h2>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">استخدم "عين الروح" للتعرف على نبتتك وإضافتها لمجموعتك للحصول على جدول عناية مخصص.</p>
+                        <button onClick={() => navigateTo({ type: 'imageAnalysis' })} className="w-full flex items-center justify-center gap-2 p-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition">
+                        <Camera size={20} /> الذهاب إلى عين الروح
                         </button>
                     </div>
 
                     {isLoading && (
                         <div className="text-center p-4">
-                            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-700 mx-auto"></div>
+                            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500 mx-auto"></div>
                             <p className="mt-3 text-gray-600 dark:text-gray-300">...جاري إضافة النبتة وإنشاء جدول العناية</p>
                         </div>
                     )}
@@ -223,7 +223,7 @@ const MyPlantsPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                             <div className="flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400 py-12 bg-white dark:bg-black rounded-lg border-2 border-dashed dark:border-gray-800">
                                 <ArchiveX size={48} className="mb-4 text-gray-400 dark:text-gray-600" />
                                 <h3 className="font-bold text-lg text-gray-600 dark:text-gray-200">مجموعتك فارغة</h3>
-                                <p className="text-sm mt-1">ابدأ بإضافة نبتتك الأولى باستخدام الكاميرا الذكية.</p>
+                                <p className="text-sm mt-1">ابدأ بإضافة نبتتك الأولى باستخدام عين الروح.</p>
                             </div>
                         )}
                     </div>

@@ -137,7 +137,7 @@ const DietPlanPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                     <input name="allergies" value={formState.allergies} onChange={handleFormChange} placeholder="مثال: حساسية من المكسرات، لا أحب الأفوكادو" className="w-full p-2 border rounded-md dark:bg-black dark:border-gray-600"/>
                 </div>
             </div>
-            <button onClick={generatePlan} className="w-full mt-6 p-3 bg-pink-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-pink-600 transition active:scale-95">
+            <button onClick={generatePlan} className="w-full mt-6 p-3 bg-indigo-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-indigo-600 transition active:scale-95">
                 <Sparkles size={20} />
                 أنشئ الخطة بالذكاء الاصطناعي
             </button>
@@ -155,7 +155,7 @@ const DietPlanPage: React.FC<NavigationProps> = ({ navigateTo }) => {
         <div className="space-y-3">
         {plan?.dailyPlan.map((day, index) => (
             <div key={index} className="bg-white dark:bg-black rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-4">
-                <h3 className="font-bold text-lg text-pink-700 dark:text-pink-300">{day.day}</h3>
+                <h3 className="font-bold text-lg text-indigo-700 dark:text-indigo-300">{day.day}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">إجمالي السعرات: ~{day.dailyTotalCalories} سعرة</p>
                 <div className="space-y-2">
                     {day.meals.map((meal, mealIndex) => (
@@ -181,11 +181,11 @@ const DietPlanPage: React.FC<NavigationProps> = ({ navigateTo }) => {
 
     return (
         <div className="bg-gray-50 dark:bg-black min-h-screen">
-            <PageHeader navigateTo={navigateTo} title="خطط غذائية" Icon={UtensilsCrossed} color="pink" backPage={{ type: 'smartHealth', pageType: 'beauty' }}/>
+            <PageHeader navigateTo={navigateTo} title="خطط غذائية" Icon={UtensilsCrossed} color="indigo" backPage={{ type: 'smartHealth', pageType: 'beauty' }}/>
             <main className="p-4">
                 {isLoading && (
                      <div className="text-center p-8 bg-white dark:bg-black rounded-lg shadow-md">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto"></div>
                         <p className="mt-4 text-gray-600 dark:text-gray-300">...خبير التغذية يعد خطتك بعناية</p>
                     </div>
                 )}

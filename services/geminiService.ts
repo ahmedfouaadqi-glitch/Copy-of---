@@ -1,5 +1,5 @@
 import { GoogleGenAI, GenerateContentResponse, Part, Modality, Content, Type, GenerateVideosOperation, Video } from "@google/genai";
-import { ChatMessage, DiaryEntry, GroundingChunk, VisualFoodAnalysis } from '../types';
+import { ChatMessage, DiaryEntry, GroundingChunk, VisualFoodAnalysis, StyleAdvice } from '../types';
 import { getDiaryEntries } from "./diaryService";
 
 // This file has been significantly refactored to incorporate a wide range of Gemini features
@@ -113,6 +113,60 @@ export const callGeminiVisualJsonApi = async (prompt: string, image: { mimeType:
         const jsonText = response.text.trim();
         const cleanedJsonText = jsonText.replace(/^```json\n/, '').replace(/\n```$/, '');
         return JSON.parse(cleanedJsonText) as VisualFoodAnalysis;
+    } catch (error) {
+        throw new Error(handleGeminiError(error));
+    }
+}
+
+export const styleAdviceSchema = {
+  type: Type.OBJECT,
+  properties: {
+    makeup: {
+      type: Type.OBJECT,
+      properties: {
+        title: { type: Type.STRING, description: "عنوان جذاب لإطلالة المكياج المقترحة." },
+        colors: { type: Type.STRING, description: "لوحة الألوان المقترحة (ظلال عيون، أحمر شفاه، إلخ)." },
+        technique: { type: Type.STRING, description: "شرح موجز لتقنية المكياج التي تكمل الملابس." }
+      },
+      required: ['title', 'colors', 'technique']
+    },
+    accessories: {
+      type: Type.OBJECT,
+      properties: {
+        title: { type: Type.STRING, description: "عنوان لاقتراحات الاكسسوارات." },
+        jewelry: { type: Type.STRING, description: "اقتراح للمجوهرات (قلادة, أقراط)." },
+        bag: { type: Type.STRING, description: "اقتراح للحقيبة المناسبة." },
+        shoes: { type: Type.STRING, description: "اقتراح للحذاء المناسب." }
+      },
+      required: ['title', 'jewelry', 'bag', 'shoes']
+    },
+    hair: {
+      type: Type.OBJECT,
+      properties: {
+        title: { type: Type.STRING, description: "عنوان لاقتراح تسريحة الشعر." },
+        style: { type: Type.STRING, description: "وصف لتسريحة الشعر المقترحة." },
+        tip: { type: Type.STRING, description: "نصيحة سريعة للعناية بالشعر أو لتثبيت التسريحة." }
+      },
+       required: ['title', 'style', 'tip']
+    }
+  },
+  required: ['makeup', 'accessories', 'hair']
+};
+
+export const getStyleAdvice = async (prompt: string, image: { mimeType: string; data: string }): Promise<StyleAdvice> => {
+     try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: { parts: [{ text: prompt }, { inlineData: { mimeType: image.mimeType, data: image.data } }] },
+            config: {
+                responseMimeType: 'application/json',
+                responseSchema: styleAdviceSchema,
+            },
+        });
+        const jsonText = response.text.trim();
+        const cleanedJsonText = jsonText.replace(/^```json\n/, '').replace(/\n```$/, '');
+        return JSON.parse(cleanedJsonText) as StyleAdvice;
     } catch (error) {
         throw new Error(handleGeminiError(error));
     }

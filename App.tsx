@@ -21,6 +21,7 @@ import VideoGenerationPage from './pages/VideoGenerationPage';
 import LiveConversationPage from './pages/LiveConversationPage';
 import TranscriptionPage from './pages/TranscriptionPage';
 import UserProfileSetupPage from './pages/UserProfileSetupPage';
+import AchievementsPage from './pages/AchievementsPage';
 
 
 import { ThemeProvider } from './context/ThemeContext';
@@ -51,16 +52,17 @@ const AppContent: React.FC = () => {
         setIsLoading(false);
         playSound('start');
 
-        const hasSetup = localStorage.getItem('hasCompletedProfileSetup');
-        if (!hasSetup) {
-            setShowProfileSetup(true);
-        } else {
+        // Temporarily disabled profile setup to check sections
+        // const hasSetup = localStorage.getItem('hasCompletedProfileSetup');
+        // if (!hasSetup) {
+        //     setShowProfileSetup(true);
+        // } else {
             setUserProfile(getUserProfile());
             const hasOnboarded = localStorage.getItem('hasOnboarded');
             if (!hasOnboarded) {
                 setShowOnboarding(true);
             }
-        }
+        // }
     }, 1500);
     
     // Indicator logic
@@ -75,13 +77,20 @@ const AppContent: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
   
-  const handleProfileSetupComplete = () => {
-    localStorage.setItem('hasCompletedProfileSetup', 'true');
-    setShowProfileSetup(false);
-    setUserProfile(getUserProfile()); // Refresh profile after setup
-    const hasOnboarded = localStorage.getItem('hasOnboarded');
-    if (!hasOnboarded) {
-        setShowOnboarding(true);
+  const handleProfileSave = () => {
+    // const hasSetup = localStorage.getItem('hasCompletedProfileSetup');
+    // if (!hasSetup) {
+        localStorage.setItem('hasCompletedProfileSetup', 'true');
+        setShowProfileSetup(false);
+        const hasOnboarded = localStorage.getItem('hasOnboarded');
+        if (!hasOnboarded) {
+            setShowOnboarding(true);
+        }
+    // }
+    const updatedProfile = getUserProfile();
+    setUserProfile(updatedProfile); // Refresh profile after setup or edit
+    if (currentPage.type === 'userProfileSetup') {
+        setCurrentPage({ type: 'home' }); // Navigate back home after saving
     }
   };
 
@@ -91,7 +100,11 @@ const AppContent: React.FC = () => {
   };
 
   const navigateTo = (page: Page) => {
-    setCurrentPage(page);
+    if (page.type === 'userProfileSetup') {
+        setCurrentPage({type: 'userProfileSetup'});
+    } else {
+        setCurrentPage(page);
+    }
   };
 
   const renderPage = () => {
@@ -140,6 +153,10 @@ const AppContent: React.FC = () => {
           return <LiveConversationPage navigateTo={navigateTo} />;
       case 'transcription':
           return <TranscriptionPage navigateTo={navigateTo} />;
+      case 'userProfileSetup':
+          return <UserProfileSetupPage onComplete={handleProfileSave} />;
+      case 'achievements':
+          return <AchievementsPage navigateTo={navigateTo} />;
       default:
         // Check if it's a smartHealth pageType that was passed without the container type
         const page = currentPage as any;
@@ -156,7 +173,7 @@ const AppContent: React.FC = () => {
   }
   
   if (showProfileSetup) {
-    return <UserProfileSetupPage onComplete={handleProfileSetupComplete} />;
+    return <UserProfileSetupPage onComplete={handleProfileSave} />;
   }
   
   return (

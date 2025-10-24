@@ -11,9 +11,9 @@ interface BottomNavBarProps extends NavigationProps {
 
 const navItems = [
   { page: { type: 'home' } as Page, pageType: 'home', Icon: Home, label: 'الرئيسية' },
-  { page: { type: 'healthDiary' } as Page, pageType: 'healthDiary', Icon: NotebookText, label: 'يومياتي' },
-  { page: { type: 'imageAnalysis' } as Page, pageType: 'imageAnalysis', Icon: Camera, label: 'الكاميرا' },
-  { page: { type: 'chat' } as Page, pageType: 'chat', Icon: BrainCircuit, label: 'الدردشة' },
+  { page: { type: 'healthDiary' } as Page, pageType: 'healthDiary', Icon: NotebookText, label: 'السجل' },
+  { page: { type: 'imageAnalysis' } as Page, pageType: 'imageAnalysis', Icon: Camera, label: 'العين' },
+  { page: { type: 'chat' } as Page, pageType: 'chat', Icon: BrainCircuit, label: 'العقل' },
   { page: { type: 'globalSearch' } as Page, pageType: 'globalSearch', Icon: Search, label: 'البحث' },
 ];
 
@@ -41,12 +41,12 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ currentPage, navigateTo, di
               key={pageType}
               onClick={() => handleNavigation(page, pageType)}
               className={`flex flex-col items-center justify-center h-full w-full text-xs transition-colors duration-200
-                ${isActive ? 'text-teal-500 dark:text-teal-400 font-bold' : 'text-gray-500 dark:text-gray-400 hover:text-teal-500'}`}
+                ${isActive ? 'text-cyan-500 dark:text-cyan-400 font-bold' : 'text-gray-500 dark:text-gray-400 hover:text-cyan-500'}`}
             >
               <div className="relative">
                  <Icon className="w-6 h-6 mb-0.5" />
                  {hasIndicator && (
-                    <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-teal-500 ring-2 ring-white dark:ring-black animate-pulse"></span>
+                    <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-cyan-500 ring-2 ring-white dark:ring-black animate-pulse"></span>
                  )}
               </div>
               <span>{label}</span>

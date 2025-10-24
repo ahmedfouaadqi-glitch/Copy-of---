@@ -9,28 +9,6 @@ import { NotebookText, Trash2, Calendar, ChevronLeft, ChevronRight, ArchiveX, Pl
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { playSound } from '../services/soundService';
 
-const feature = FEATURES.find(f => f.pageType === 'healthDiary')!;
-
-const DiaryEntryCard: React.FC<{ entry: DiaryEntry; onDelete: (id: string) => void }> = ({ entry, onDelete }) => (
-    <div className="bg-white dark:bg-black p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 flex items-start gap-4 transition-transform duration-200 hover:scale-[1.02]">
-        <div className="text-2xl pt-1">{entry.icon}</div>
-        <div className="flex-1">
-            <h3 className="font-bold text-gray-800 dark:text-gray-200">{entry.title}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{entry.details}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                {new Date(entry.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
-            </p>
-        </div>
-        <button
-            onClick={() => onDelete(entry.id)}
-            className="p-2 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-50 dark:hover:bg-gray-900 transition-colors"
-            aria-label="حذف الإدخال"
-        >
-            <Trash2 size={18} />
-        </button>
-    </div>
-);
-
 const HealthDiaryPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [entries, setEntries] = useState<DiaryEntry[]>([]);
@@ -123,12 +101,12 @@ const HealthDiaryPage: React.FC<NavigationProps> = ({ navigateTo }) => {
 
     return (
         <div className="bg-gray-50 dark:bg-black min-h-screen">
-            <PageHeader navigateTo={navigateTo} title="مركز مستشار يومياتي" Icon={NotebookText} color="purple" />
+            <PageHeader navigateTo={navigateTo} title="سجل الروح" Icon={NotebookText} color="indigo" />
             <main className="p-4">
                  <div className="bg-white dark:bg-black p-4 rounded-lg shadow-md mb-6 border border-gray-200 dark:border-gray-800">
                     <div className="flex justify-between items-center mb-2">
                         <h3 className="font-bold text-gray-700 dark:text-gray-200">إضافة سريعة</h3>
-                        <button onClick={handleManageQuickAdd} className="p-2 text-gray-500 hover:text-purple-600 rounded-full hover:bg-purple-50 dark:hover:bg-gray-900 transition"><Settings size={18}/></button>
+                        <button onClick={handleManageQuickAdd} className="p-2 text-gray-500 hover:text-indigo-600 rounded-full hover:bg-indigo-50 dark:hover:bg-gray-900 transition"><Settings size={18}/></button>
                     </div>
                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                         {quickAddActions.map(action => (
@@ -152,7 +130,7 @@ const HealthDiaryPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                                 rows={3}
                             />
                             <div className="flex gap-2 mt-2">
-                                <button onClick={handleSaveNote} className="flex-1 p-2 bg-purple-500 text-white rounded-md hover:bg-purple-600">حفظ الملاحظة</button>
+                                <button onClick={handleSaveNote} className="flex-1 p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600">حفظ الملاحظة</button>
                                 <button onClick={() => setIsNoteInputVisible(false)} className="flex-1 p-2 bg-gray-200 dark:bg-gray-800 rounded-md">إلغاء</button>
                             </div>
                         </div>
@@ -186,7 +164,7 @@ const HealthDiaryPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                         <ChevronRight className="text-gray-600 dark:text-gray-300" />
                     </button>
                     <div className="text-center">
-                        <h2 className="font-bold text-lg text-purple-700 dark:text-purple-300 flex items-center gap-2">
+                        <h2 className="font-bold text-lg text-indigo-700 dark:text-indigo-300 flex items-center gap-2">
                            <Calendar size={20} />
                            {formattedDate}
                         </h2>
@@ -226,6 +204,34 @@ const HealthDiaryPage: React.FC<NavigationProps> = ({ navigateTo }) => {
         </div>
     );
 };
+
+// FIX: Define the missing DiaryEntryCard component.
+const DiaryEntryCard: React.FC<{ entry: DiaryEntry, onDelete: (id: string) => void }> = ({ entry, onDelete }) => (
+    <div className="bg-white dark:bg-black p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 flex items-start gap-4 animate-fade-in">
+        <div className="text-3xl mt-1">{entry.icon}</div>
+        <div className="flex-1">
+            <div className="flex justify-between items-start">
+                <div>
+                    <h4 className="font-bold text-gray-800 dark:text-gray-200">{entry.title}</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {new Date(entry.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                </div>
+                <button onClick={() => onDelete(entry.id)} className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50 dark:hover:bg-gray-800 transition">
+                    <Trash2 size={16} />
+                </button>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 whitespace-pre-wrap">{entry.details}</p>
+        </div>
+        <style>{`
+            @keyframes fade-in {
+              from { opacity: 0; transform: translateY(5px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+            .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
+        `}</style>
+    </div>
+);
 
 const ManageQuickAddModal: React.FC<{actions: QuickAddAction[], onClose: () => void, onSave: (actions: QuickAddAction[]) => void}> = ({ actions, onClose, onSave }) => {
     const [currentActions, setCurrentActions] = useState(actions);
@@ -271,7 +277,7 @@ const ManageQuickAddModal: React.FC<{actions: QuickAddAction[], onClose: () => v
                         <input value={newAction.icon} onChange={e => setNewAction({...newAction, icon: e.target.value})} placeholder="أيقونة" className="w-1/4 p-2 border rounded-md dark:bg-black dark:border-gray-600"/>
                         <input value={newAction.label} onChange={e => setNewAction({...newAction, label: e.target.value})} placeholder="الاسم" className="w-3/4 p-2 border rounded-md dark:bg-black dark:border-gray-600"/>
                     </div>
-                     <button onClick={handleAdd} className="w-full mt-2 p-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 flex items-center justify-center gap-2"><Plus size={18}/>إضافة زر</button>
+                     <button onClick={handleAdd} className="w-full mt-2 p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 flex items-center justify-center gap-2"><Plus size={18}/>إضافة زر</button>
                 </div>
                 <button onClick={() => onSave(currentActions)} className="w-full mt-4 p-2 bg-green-500 text-white rounded-md hover:bg-green-600 flex items-center justify-center gap-2"><Save size={18}/>حفظ التغييرات</button>
             </div>
