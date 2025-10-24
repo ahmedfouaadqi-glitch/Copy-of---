@@ -1,17 +1,19 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { NavigationProps, UserProfile, PageType, ProactiveInsight } from '../types';
+import { NavigationProps, UserProfile, PageType, ProactiveInsight, WeatherInfo } from '../types';
 import { FEATURES } from '../constants';
 import FeatureCard from '../components/FeatureCard';
 import { HeartPulse } from 'lucide-react';
 import { useFeatureUsage } from '../hooks/useFeatureUsage';
 import MorningBriefing from '../components/MorningBriefing';
-import UserProfileCard from '../components/UserProfileCard';
 import { getShoppingList } from '../services/shoppingListService';
 import { getActiveChallenges } from '../services/challengeService';
 import PriorityFeatureCard from '../components/PriorityFeatureCard';
 import { getInsight, dismissInsight, shouldGenerateNewInsight, generateInsight } from '../services/proactiveInsightService';
 import ProactiveInsightCard from '../components/ProactiveInsightCard';
 import DailyReward from '../components/DailyReward';
+import DynamicWelcomeCard from '../components/DynamicWelcomeCard';
+import { getWeatherInfo } from '../services/weatherService';
+import { getDailyTip } from '../services/geminiService';
 
 interface HomePageProps extends NavigationProps {
     diaryIndicatorActive: boolean;
@@ -21,10 +23,28 @@ interface HomePageProps extends NavigationProps {
 const HomePage: React.FC<HomePageProps> = ({ navigateTo, diaryIndicatorActive, userProfile }) => {
   const { getUsageSortedFeatures } = useFeatureUsage();
   const [insight, setInsight] = useState<ProactiveInsight | null>(null);
+  const [weather, setWeather] = useState<WeatherInfo | null>(null);
+  const [dailyTip, setDailyTip] = useState<string | null>(null);
 
   const sortedFeatures = useMemo(() => getUsageSortedFeatures(FEATURES), [getUsageSortedFeatures]);
   const shoppingListCount = getShoppingList().filter(item => !item.isChecked).length;
   const activeChallengesCount = getActiveChallenges().length;
+
+  useEffect(() => {
+    const fetchData = async () => {
+        if (userProfile) {
+            // Fetch weather and tip in parallel
+            const [weatherData, tipData] = await Promise.all([
+                getWeatherInfo(),
+                getDailyTip(userProfile.mainGoal)
+            ]);
+            setWeather(weatherData);
+            setDailyTip(tipData);
+        }
+    };
+    fetchData();
+  }, [userProfile]);
+
 
   useEffect(() => {
     const manageInsight = async () => {
@@ -98,9 +118,14 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, diaryIndicatorActive, u
         </div>
       </header>
       <main className="p-4 flex-grow max-w-4xl mx-auto w-full">
+        <DynamicWelcomeCard 
+            userProfile={userProfile} 
+            weatherInfo={weather} 
+            dailyTip={dailyTip} 
+            onEdit={handleEditProfile} 
+        />
         <MorningBriefing userProfile={userProfile} />
         {insight && <ProactiveInsightCard insightMessage={insight.message} onDismiss={handleDismissInsight} />}
-        <UserProfileCard userProfile={userProfile} onEdit={handleEditProfile} />
         <DailyReward />
         
         {priorityFeature && (

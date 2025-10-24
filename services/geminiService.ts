@@ -262,6 +262,21 @@ export const generateMorningBriefing = async (userName: string | null): Promise<
     }
 };
 
+export const getDailyTip = async (userGoal: string): Promise<string> => {
+    try {
+        const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط وبجملة واحدة قصيرة وموجزة.** أنت "همسة الروح" في تطبيق 'الروح التقنية'. بناءً على هدف المستخدم الرئيسي وهو "${userGoal}"، قدم نصيحة واحدة فقط، ملهمة وعملية ومناسبة لهذا اليوم. اجعلها قصيرة جداً لتظهر في بطاقة الترحيب.`;
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+        });
+        return response.text;
+    } catch (error) {
+        console.error("Error generating daily tip:", error);
+        return "كل يوم هو فرصة جديدة لتحقيق أهدافك. استثمرها بحكمة.";
+    }
+};
+
 export const suggestMovieBasedOnDiary = async (): Promise<string> => {
     try {
         const yesterday = new Date();

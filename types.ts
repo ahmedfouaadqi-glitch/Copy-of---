@@ -257,3 +257,9 @@ export interface SpiritReward {
     icon: string;
     content: string;
 }
+
+export interface WeatherInfo {
+    temperature: number;
+    condition: string;
+    icon: string; // Emoji for the weather condition
+}
