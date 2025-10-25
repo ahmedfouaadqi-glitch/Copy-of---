@@ -74,7 +74,8 @@ const VideoGenerationPage: React.FC<NavigationProps> = ({ navigateTo }) => {
 
             if (operation.error) {
                 // FIX: Handle potential 'undefined' error message from video generation operation by providing a fallback error message.
-                throw new Error(operation.error.message || 'حدث خطأ غير معروف أثناء إنشاء الفيديو.');
+                // FIX: Safely convert the 'unknown' error message to a string.
+                throw new Error(operation.error.message ? String(operation.error.message) : 'حدث خطأ غير معروف أثناء إنشاء الفيديو.');
             }
 
             const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;

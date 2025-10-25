@@ -9,7 +9,6 @@ import { NotebookText, Trash2, Calendar, ChevronLeft, ChevronRight, ArchiveX, Pl
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { playSound } from '../services/soundService';
 
-// FIX: Define the missing DiaryEntryCard component.
 const DiaryEntryCard: React.FC<{ entry: DiaryEntry, onDelete: (id: string) => void }> = ({ entry, onDelete }) => (
     <div className="bg-white dark:bg-black p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 flex items-start gap-4 animate-fade-in">
         <div className="text-3xl mt-1">{entry.icon}</div>
