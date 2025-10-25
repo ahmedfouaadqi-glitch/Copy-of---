@@ -9,6 +9,7 @@ import SmartTip from '../components/SmartTip';
 import { playSound } from '../services/soundService';
 import { useFeatureUsage } from '../hooks/useFeatureUsage';
 import TTSButton from '../components/TTSButton';
+import { getItem, setItem } from '../services/storageService';
 
 const SYSTEM_INSTRUCTION = `${CHAT_PERSONA_INSTRUCTION}\n\n${SYSTEM_INSTRUCTION_CORE}`;
 
@@ -27,7 +28,7 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
   
   // Greeting and history logic
   useEffect(() => {
-    const storedMessages = JSON.parse(localStorage.getItem('chatHistory') || '[]') as ChatMessage[];
+    const storedMessages = getItem<ChatMessage[]>('chatHistory', []);
     if (storedMessages.length === 0) {
       const initialMessage: ChatMessage = {
         role: 'model',
@@ -54,7 +55,7 @@ const ChatPage: React.FC<NavigationProps> = ({ navigateTo }) => {
   }, [getLastVisitedFeature]);
 
   useEffect(() => {
-    localStorage.setItem('chatHistory', JSON.stringify(messages));
+    setItem('chatHistory', messages);
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
   

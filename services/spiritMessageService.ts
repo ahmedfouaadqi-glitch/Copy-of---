@@ -3,6 +3,7 @@ import { getSpiritMessageFromGemini } from './geminiService';
 import { getDiaryEntries } from './diaryService';
 import { FEATURES } from '../constants';
 import { getNotificationSettings } from './notificationSettingsService';
+import { getItem, setItem } from './storageService';
 
 const MESSAGE_KEY = 'dailySpiritMessage';
 const USAGE_STATS_KEY = 'featureUsageStats';
@@ -52,17 +53,10 @@ export const getDailySpiritMessage = async (userProfile: UserProfile): Promise<S
     }
 
     const todayStr = getFormattedDate(new Date());
-    const stored = localStorage.getItem(MESSAGE_KEY);
+    const stored = getItem<StoredMessage | null>(MESSAGE_KEY, null);
 
-    if (stored) {
-        try {
-            const storedMessage: StoredMessage = JSON.parse(stored);
-            if (storedMessage.date === todayStr) {
-                return storedMessage.message; // Return cached message for today
-            }
-        } catch (error) {
-            console.error("Failed to parse stored spirit message", error);
-        }
+    if (stored && stored.date === todayStr) {
+        return stored.message; // Return cached message for today
     }
 
     // If no message for today, fetch a new one
@@ -71,7 +65,7 @@ export const getDailySpiritMessage = async (userProfile: UserProfile): Promise<S
         let context: string | undefined;
 
         // Smart Hint Logic
-        const usageStats = JSON.parse(localStorage.getItem(USAGE_STATS_KEY) || '{}');
+        const usageStats = getItem(USAGE_STATS_KEY, {});
         const allFeaturePageTypes = FEATURES.map(f => f.pageType);
         const usedFeaturePageTypes = Object.keys(usageStats);
         const unusedFeatures = FEATURES.filter(f => !usedFeaturePageTypes.includes(f.pageType) && !['home', 'chat', 'imageAnalysis', 'globalSearch', 'healthDiary'].includes(f.pageType));
@@ -101,7 +95,7 @@ export const getDailySpiritMessage = async (userProfile: UserProfile): Promise<S
         if (content) {
             const newMessage: SpiritMessage = { type: messageType, content };
             const newStoredMessage: StoredMessage = { date: todayStr, message: newMessage };
-            localStorage.setItem(MESSAGE_KEY, JSON.stringify(newStoredMessage));
+            setItem(MESSAGE_KEY, newStoredMessage);
             return newMessage;
         }
         return null;

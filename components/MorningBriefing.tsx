@@ -3,6 +3,7 @@ import { generateMorningBriefing } from '../services/geminiService';
 import { Sun, X } from 'lucide-react';
 import MarkdownRenderer from './MarkdownRenderer';
 import { UserProfile } from '../types';
+import { getItem, setItem } from '../services/storageService';
 
 interface MorningBriefingProps {
     userProfile: UserProfile | null;
@@ -15,7 +16,7 @@ const MorningBriefing: React.FC<MorningBriefingProps> = ({ userProfile }) => {
 
     useEffect(() => {
         const checkAndFetchBriefing = async () => {
-            const lastShownDate = localStorage.getItem('lastBriefingShownDate');
+            const lastShownDate = getItem('lastBriefingShownDate', null);
             const today = new Date().toDateString();
 
             if (lastShownDate !== today) {
@@ -23,7 +24,7 @@ const MorningBriefing: React.FC<MorningBriefingProps> = ({ userProfile }) => {
                 try {
                     const result = await generateMorningBriefing(userProfile?.name || null);
                     setBriefing(result);
-                    localStorage.setItem('lastBriefingShownDate', today);
+                    setItem('lastBriefingShownDate', today);
                 } catch (error) {
                     // Fail silently, don't show an error to the user
                     console.error("Failed to fetch morning briefing:", error);

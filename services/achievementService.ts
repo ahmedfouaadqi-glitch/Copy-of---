@@ -4,17 +4,12 @@ import { Achievement, Badge } from '../types';
 import { ACHIEVEMENTS_LIST } from '../constants';
 import toast from 'react-hot-toast';
 import { getDiaryEntries } from './diaryService';
+import { getItem, setItem } from './storageService';
 
 const ACHIEVEMENTS_KEY = 'userAchievements';
 
 export const getEarnedAchievements = (): Achievement[] => {
-    try {
-        const stored = localStorage.getItem(ACHIEVEMENTS_KEY);
-        return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-        console.error("Failed to parse achievements from localStorage", error);
-        return [];
-    }
+    return getItem<Achievement[]>(ACHIEVEMENTS_KEY, []);
 };
 
 const awardAchievement = (badge: Badge) => {
@@ -29,7 +24,7 @@ const awardAchievement = (badge: Badge) => {
     };
 
     const updatedAchievements = [...earned, newAchievement];
-    localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(updatedAchievements));
+    setItem(ACHIEVEMENTS_KEY, updatedAchievements);
 
     // Show a toast notification
     // FIX: Replaced JSX with React.createElement to be valid in a .ts file.
@@ -69,9 +64,9 @@ export const checkAndAwardAchievements = () => {
     const earned = getEarnedAchievements();
     const diaryEntryCount = (() => {
         const keys = Object.keys(localStorage).filter(k => k.startsWith('healthDiary-'));
-        return keys.reduce((acc, key) => acc + (JSON.parse(localStorage.getItem(key)!) as any[]).length, 0);
+        return keys.reduce((acc, key) => acc + (getItem<any[]>(key, [])).length, 0);
     })();
-    const featureUsageStats = JSON.parse(localStorage.getItem('featureUsageStats') || '{}');
+    const featureUsageStats = getItem('featureUsageStats', {});
     const usedFeaturesCount = Object.keys(featureUsageStats).length;
 
     ACHIEVEMENTS_LIST.forEach(badge => {
@@ -98,7 +93,7 @@ export const checkAndAwardAchievements = () => {
                 }
                 break;
             case 'challenge_completed':
-                const completedChallenges = JSON.parse(localStorage.getItem('completedChallenges') || '[]');
+                const completedChallenges = getItem<string[]>('completedChallenges', []);
                 if (completedChallenges.length >= (badge.criteria.value as number)) {
                     conditionMet = true;
                 }

@@ -1,4 +1,5 @@
 import { UserProfile } from '../types';
+import { getItem, setItem, removeItem } from './storageService';
 
 const PROFILE_KEY = 'userProfile';
 const BIOMETRIC_CREDENTIAL_ID_KEY = 'biometricCredentialId';
@@ -21,32 +22,25 @@ export function base64ToBuffer(base64: string): ArrayBuffer {
 
 
 export const saveUserProfile = (profile: UserProfile): void => {
-    try {
-        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-    } catch (error) {
-        console.error("Failed to save user profile to localStorage", error);
-    }
+    setItem(PROFILE_KEY, profile);
 };
 
 export const getUserProfile = (): UserProfile | null => {
-    try {
-        const stored = localStorage.getItem(PROFILE_KEY);
-        return stored ? JSON.parse(stored) : null;
-    } catch (error) {
-        console.error("Failed to parse user profile from localStorage", error);
-        return null;
-    }
+    return getItem<UserProfile | null>(PROFILE_KEY, null);
 };
 
 export const saveBiometricCredential = (credentialId: ArrayBuffer): void => {
     const credentialIdBase64 = bufferToBase64(credentialId);
-    localStorage.setItem(BIOMETRIC_CREDENTIAL_ID_KEY, credentialIdBase64);
+    setItem(BIOMETRIC_CREDENTIAL_ID_KEY, credentialIdBase64);
 };
 
 export const getBiometricCredentialId = (): string | null => {
+    // This function is called in App.tsx before the refactor can be confirmed to work,
+    // so it uses the raw localStorage method for safety during initialization.
+    // In other parts of the app, getItem should be used.
     return localStorage.getItem(BIOMETRIC_CREDENTIAL_ID_KEY);
 };
 
 export const clearBiometricCredential = (): void => {
-    localStorage.removeItem(BIOMETRIC_CREDENTIAL_ID_KEY);
+    removeItem(BIOMETRIC_CREDENTIAL_ID_KEY);
 };

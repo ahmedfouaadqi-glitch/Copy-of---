@@ -1,19 +1,14 @@
 import { ShoppingListItem } from '../types';
+import { getItem, setItem } from './storageService';
 
 const SHOPPING_LIST_KEY = 'shoppingList';
 
 export const getShoppingList = (): ShoppingListItem[] => {
-    try {
-        const stored = localStorage.getItem(SHOPPING_LIST_KEY);
-        return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-        console.error("Failed to parse shopping list from localStorage", error);
-        return [];
-    }
+    return getItem<ShoppingListItem[]>(SHOPPING_LIST_KEY, []);
 };
 
 export const saveShoppingList = (items: ShoppingListItem[]): void => {
-    localStorage.setItem(SHOPPING_LIST_KEY, JSON.stringify(items));
+    setItem(SHOPPING_LIST_KEY, items);
 };
 
 export const addItemToShoppingList = (newItem: ShoppingListItem): void => {

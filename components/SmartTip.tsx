@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Lightbulb, X } from 'lucide-react';
+import { getItem, setItem } from '../services/storageService';
 
 interface SmartTipProps {
   tipId: string;
@@ -10,14 +11,14 @@ const SmartTip: React.FC<SmartTipProps> = ({ tipId, message }) => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const hasBeenDismissed = localStorage.getItem(`tip_${tipId}_dismissed`);
+    const hasBeenDismissed = getItem(`tip_${tipId}_dismissed`, null);
     if (!hasBeenDismissed) {
       setIsVisible(true);
     }
   }, [tipId]);
 
   const handleDismiss = () => {
-    localStorage.setItem(`tip_${tipId}_dismissed`, 'true');
+    setItem(`tip_${tipId}_dismissed`, 'true');
     setIsVisible(false);
   };
 

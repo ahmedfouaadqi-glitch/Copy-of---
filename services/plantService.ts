@@ -1,16 +1,11 @@
 import { UserPlant } from '../types';
 import { addDiaryEntry } from './diaryService';
+import { getItem, setItem } from './storageService';
 
 const PLANTS_KEY = 'userPlantsCollection';
 
 export const getPlants = (): UserPlant[] => {
-    try {
-        const stored = localStorage.getItem(PLANTS_KEY);
-        return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-        console.error("Failed to parse user plants from localStorage", error);
-        return [];
-    }
+    return getItem<UserPlant[]>(PLANTS_KEY, []);
 };
 
 export const addPlant = (newPlant: Omit<UserPlant, 'id'>): UserPlant => {
@@ -21,7 +16,7 @@ export const addPlant = (newPlant: Omit<UserPlant, 'id'>): UserPlant => {
         journal: [], // Initialize with an empty journal
     };
     const updatedPlants = [plant, ...plants];
-    localStorage.setItem(PLANTS_KEY, JSON.stringify(updatedPlants));
+    setItem(PLANTS_KEY, updatedPlants);
     
     // Automatically create care schedule entries in the diary
     if (plant.careSchedule) {
@@ -46,13 +41,13 @@ export const addPlant = (newPlant: Omit<UserPlant, 'id'>): UserPlant => {
 export const updatePlant = (plantId: string, updatedPlant: UserPlant): UserPlant[] => {
     const plants = getPlants();
     const updatedPlants = plants.map(p => p.id === plantId ? updatedPlant : p);
-    localStorage.setItem(PLANTS_KEY, JSON.stringify(updatedPlants));
+    setItem(PLANTS_KEY, updatedPlants);
     return updatedPlants;
 }
 
 export const deletePlant = (plantId: string): UserPlant[] => {
     let plants = getPlants();
     const updatedPlants = plants.filter(plant => plant.id !== plantId);
-    localStorage.setItem(PLANTS_KEY, JSON.stringify(updatedPlants));
+    setItem(PLANTS_KEY, updatedPlants);
     return updatedPlants;
 };

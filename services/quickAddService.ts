@@ -1,5 +1,6 @@
 import { QuickAddAction } from '../types';
 import { addDiaryEntry } from './diaryService';
+import { getItem, setItem } from './storageService';
 
 const QUICK_ADD_KEY = 'quickAddActions';
 
@@ -11,22 +12,17 @@ const DEFAULT_ACTIONS: QuickAddAction[] = [
 ];
 
 export const getQuickAddActions = (): QuickAddAction[] => {
-    try {
-        const stored = localStorage.getItem(QUICK_ADD_KEY);
-        if (stored) {
-            return JSON.parse(stored);
-        } else {
-            localStorage.setItem(QUICK_ADD_KEY, JSON.stringify(DEFAULT_ACTIONS));
-            return DEFAULT_ACTIONS;
-        }
-    } catch (error) {
-        console.error("Failed to parse quick add actions", error);
+    const stored = getItem<QuickAddAction[] | null>(QUICK_ADD_KEY, null);
+    if (stored) {
+        return stored;
+    } else {
+        setItem(QUICK_ADD_KEY, DEFAULT_ACTIONS);
         return DEFAULT_ACTIONS;
     }
 };
 
 export const saveQuickAddActions = (actions: QuickAddAction[]): void => {
-    localStorage.setItem(QUICK_ADD_KEY, JSON.stringify(actions));
+    setItem(QUICK_ADD_KEY, actions);
 };
 
 

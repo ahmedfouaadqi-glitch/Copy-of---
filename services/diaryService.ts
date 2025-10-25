@@ -1,6 +1,7 @@
 import { DiaryEntry } from '../types';
 import { checkAndAwardAchievements } from './achievementService';
 import toast from 'react-hot-toast';
+import { getItem, setItem } from './storageService';
 
 const DIARY_KEY_PREFIX = 'healthDiary-';
 
@@ -13,14 +14,8 @@ const getFormattedDate = (date: Date): string => {
 };
 
 export const getDiaryEntries = (date: Date): DiaryEntry[] => {
-    try {
-        const key = DIARY_KEY_PREFIX + getFormattedDate(date);
-        const stored = localStorage.getItem(key);
-        return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-        console.error("Failed to parse diary entries from localStorage", error);
-        return [];
-    }
+    const key = DIARY_KEY_PREFIX + getFormattedDate(date);
+    return getItem<DiaryEntry[]>(key, []);
 };
 
 export const addDiaryEntry = (date: Date, newEntryData: Omit<DiaryEntry, 'id' | 'timestamp'>): DiaryEntry => {
@@ -40,7 +35,7 @@ export const addDiaryEntry = (date: Date, newEntryData: Omit<DiaryEntry, 'id' | 
     }
 
     const key = DIARY_KEY_PREFIX + getFormattedDate(date);
-    localStorage.setItem(key, JSON.stringify(updatedEntries));
+    setItem(key, updatedEntries);
 
     // Check for achievements after adding an entry
     checkAndAwardAchievements();
@@ -52,7 +47,7 @@ export const deleteDiaryEntry = (date: Date, entryId: string): DiaryEntry[] => {
     let entries = getDiaryEntries(date);
     const updatedEntries = entries.filter(entry => entry.id !== entryId);
     const key = DIARY_KEY_PREFIX + getFormattedDate(date);
-    localStorage.setItem(key, JSON.stringify(updatedEntries));
+    setItem(key, updatedEntries);
     return updatedEntries;
 };
 

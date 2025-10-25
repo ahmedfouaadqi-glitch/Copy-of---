@@ -1,6 +1,7 @@
 import { SpiritReward } from '../types';
 import { callGeminiApi } from './geminiService';
 import { awardSpecificBadgeById } from './achievementService';
+import { getItem, setItem } from './storageService';
 
 const REWARD_KEY = 'dailySpiritRewardStatus';
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -10,11 +11,10 @@ interface RewardStatus {
 }
 
 export const canClaimReward = (): boolean => {
-    const stored = localStorage.getItem(REWARD_KEY);
-    if (!stored) {
+    const status = getItem<RewardStatus | null>(REWARD_KEY, null);
+    if (!status) {
         return true;
     }
-    const status: RewardStatus = JSON.parse(stored);
     return Date.now() - status.lastClaimed > ONE_DAY_MS;
 };
 
@@ -46,9 +46,9 @@ export const claimReward = async (): Promise<SpiritReward> => {
     if (randomType === 'badge') {
         // Award the "Treasure Hunter" badge if it's the first time
         const firstTimeKey = 'hasOpenedSpiritBox';
-        if (!localStorage.getItem(firstTimeKey)) {
+        if (!getItem(firstTimeKey, null)) {
              awardSpecificBadgeById('treasure_hunter');
-             localStorage.setItem(firstTimeKey, 'true');
+             setItem(firstTimeKey, 'true');
              reward = {
                  type: 'badge',
                  title: 'إنجاز جديد!',
@@ -84,7 +84,7 @@ export const claimReward = async (): Promise<SpiritReward> => {
     
     // Save the claim status
     const newStatus: RewardStatus = { lastClaimed: Date.now() };
-    localStorage.setItem(REWARD_KEY, JSON.stringify(newStatus));
+    setItem(REWARD_KEY, newStatus);
 
     return reward;
 };

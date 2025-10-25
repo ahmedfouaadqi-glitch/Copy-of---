@@ -1,15 +1,10 @@
 import { FavoriteMovie } from '../types';
+import { getItem, setItem } from './storageService';
 
 const MOVIES_KEY = 'favoriteMovies';
 
 export const getFavoriteMovies = (): FavoriteMovie[] => {
-    try {
-        const stored = localStorage.getItem(MOVIES_KEY);
-        return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-        console.error("Failed to parse favorite movies from localStorage", error);
-        return [];
-    }
+    return getItem<FavoriteMovie[]>(MOVIES_KEY, []);
 };
 
 export const addFavoriteMovie = (movieData: Omit<FavoriteMovie, 'id' | 'addedDate'>): FavoriteMovie => {
@@ -25,13 +20,13 @@ export const addFavoriteMovie = (movieData: Omit<FavoriteMovie, 'id' | 'addedDat
         addedDate: Date.now()
     };
     const updatedMovies = [newMovie, ...movies];
-    localStorage.setItem(MOVIES_KEY, JSON.stringify(updatedMovies));
+    setItem(MOVIES_KEY, updatedMovies);
     return newMovie;
 };
 
 export const deleteFavoriteMovie = (movieId: string): FavoriteMovie[] => {
     let movies = getFavoriteMovies();
     const updatedMovies = movies.filter(movie => movie.id !== movieId);
-    localStorage.setItem(MOVIES_KEY, JSON.stringify(updatedMovies));
+    setItem(MOVIES_KEY, updatedMovies);
     return updatedMovies;
 };

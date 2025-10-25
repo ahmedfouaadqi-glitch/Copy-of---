@@ -1,26 +1,21 @@
 import { ProactiveInsight, UserProfile, DiaryEntry } from '../types';
 import { getDiaryEntries } from './diaryService';
 import { callGeminiProApi } from './geminiService';
+import { getItem, setItem } from './storageService';
 
 const INSIGHT_KEY = 'proactiveInsight';
 const MIN_TIME_BETWEEN_INSIGHTS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 const DAYS_TO_ANALYZE = 3;
 
 export const getInsight = (): ProactiveInsight | null => {
-    try {
-        const stored = localStorage.getItem(INSIGHT_KEY);
-        return stored ? JSON.parse(stored) : null;
-    } catch (error) {
-        console.error("Failed to parse insight from localStorage", error);
-        return null;
-    }
+    return getItem<ProactiveInsight | null>(INSIGHT_KEY, null);
 };
 
 export const dismissInsight = (id: string): void => {
     const insight = getInsight();
     if (insight && insight.id === id) {
         insight.isDismissed = true;
-        localStorage.setItem(INSIGHT_KEY, JSON.stringify(insight));
+        setItem(INSIGHT_KEY, insight);
     }
 };
 
@@ -80,7 +75,7 @@ export const generateInsight = async (userProfile: UserProfile | null): Promise<
                 message: message.trim(),
                 isDismissed: false,
             };
-            localStorage.setItem(INSIGHT_KEY, JSON.stringify(newInsight));
+            setItem(INSIGHT_KEY, newInsight);
             return newInsight.message;
         }
 

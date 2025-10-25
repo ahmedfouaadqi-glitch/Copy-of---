@@ -35,8 +35,9 @@ import BottomNavBar from './components/BottomNavBar';
 import OnboardingGuide from './components/OnboardingGuide';
 import { playSound } from './services/soundService';
 import { getActiveChallenges } from './services/challengeService';
-import { getUserProfile, getBiometricCredentialId } from './services/profileService';
+import { getUserProfile } from './services/profileService';
 import BiometricLockScreen from './components/BiometricLockScreen';
+import { getItem, setItem } from './services/storageService';
 
 type AppStatus = 'loading' | 'locked' | 'setup' | 'onboarding' | 'ready';
 
@@ -49,8 +50,8 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-        const hasSetup = localStorage.getItem('hasCompletedProfileSetup');
-        const credentialId = getBiometricCredentialId();
+        const hasSetup = getItem('hasCompletedProfileSetup', null);
+        const credentialId = getItem('biometricCredentialId', null);
 
         if (!hasSetup) {
             setAppStatus('setup');
@@ -58,7 +59,7 @@ const AppContent: React.FC = () => {
             setAppStatus('locked');
         } else {
             setUserProfile(getUserProfile());
-            const hasOnboarded = localStorage.getItem('hasOnboarded');
+            const hasOnboarded = getItem('hasOnboarded', null);
             if (!hasOnboarded) {
                 setAppStatus('onboarding');
             } else {
@@ -69,7 +70,7 @@ const AppContent: React.FC = () => {
     }, 1500);
     
     // Indicator logic
-    const lastBriefingDate = localStorage.getItem('lastBriefingShownDate');
+    const lastBriefingDate = getItem('lastBriefingShownDate', null);
     const today = new Date().toDateString();
     const isBriefingNew = lastBriefingDate !== today;
     const activeChallenges = getActiveChallenges();
@@ -82,7 +83,7 @@ const AppContent: React.FC = () => {
   
   const proceedToApp = () => {
       setUserProfile(getUserProfile());
-      const hasOnboarded = localStorage.getItem('hasOnboarded');
+      const hasOnboarded = getItem('hasOnboarded', null);
       if (!hasOnboarded) {
           setAppStatus('onboarding');
       } else {
@@ -91,14 +92,14 @@ const AppContent: React.FC = () => {
   };
 
   const handleProfileSave = () => {
-    localStorage.setItem('hasCompletedProfileSetup', 'true');
+    setItem('hasCompletedProfileSetup', 'true');
     const updatedProfile = getUserProfile();
     setUserProfile(updatedProfile);
     proceedToApp();
   };
 
   const handleOnboardingComplete = () => {
-    localStorage.setItem('hasOnboarded', 'true');
+    setItem('hasOnboarded', 'true');
     setAppStatus('ready');
   };
   

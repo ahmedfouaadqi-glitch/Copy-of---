@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { Feature, PageType } from '../types';
 import { checkAndAwardAchievements } from '../services/achievementService';
+import { getItem, setItem } from '../services/storageService';
 
 const USAGE_STATS_KEY = 'featureUsageStats';
 
@@ -15,12 +16,7 @@ interface UsageStats {
 
 export const useFeatureUsage = () => {
   const getUsageStats = useCallback((): UsageStats => {
-    try {
-      const stats = localStorage.getItem(USAGE_STATS_KEY);
-      return stats ? JSON.parse(stats) : {};
-    } catch {
-      return {};
-    }
+    return getItem<UsageStats>(USAGE_STATS_KEY, {});
   }, []);
 
   const trackFeatureUsage = useCallback((pageType: string) => {
@@ -30,7 +26,7 @@ export const useFeatureUsage = () => {
       count: existing.count + 1,
       lastVisited: Date.now() 
     };
-    localStorage.setItem(USAGE_STATS_KEY, JSON.stringify(stats));
+    setItem(USAGE_STATS_KEY, stats);
     
     // Check for achievements after tracking usage
     checkAndAwardAchievements();

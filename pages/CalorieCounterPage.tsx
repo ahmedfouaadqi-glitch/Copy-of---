@@ -14,6 +14,7 @@ import FollowUpChat from '../components/FollowUpChat';
 import MediaInput from '../components/MediaInput';
 import toast from 'react-hot-toast';
 import TTSButton from '../components/TTSButton';
+import { getItem, setItem } from '../services/storageService';
 
 
 const feature = FEATURES.find(f => f.pageType === 'calorieCounter')!;
@@ -100,9 +101,9 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
             userCorrection: parseFloat(correctedWeight),
             foodName: analysisResult.foodName,
         };
-        const corrections = JSON.parse(localStorage.getItem('visual_corrections') || '[]');
+        const corrections = getItem('visual_corrections', []);
         corrections.push(correctionData);
-        localStorage.setItem('visual_corrections', JSON.stringify(corrections));
+        setItem('visual_corrections', corrections);
         
         setAnalysisResult(prev => prev ? { ...prev, estimatedWeight: parseFloat(correctedWeight) } : null);
         setIsEditingWeight(false);
@@ -185,7 +186,7 @@ const CalorieCounterPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                 const prompt = `**مهمتك: الرد باللغة العربية الفصحى فقط.** أنت خبير تغذية ومهندس رؤية حاسوبية. في الصورة، يوجد طعام بجانب بطاقة بنكية قياسية (85.60 مم × 53.98 مم) كمرجع للحجم.
 1.  **تعرف على الطعام:** حدد نوع الطعام في الصورة.
 2.  **تقدير الوزن:** استخدم البطاقة البنكية كمرجع لقياس أبعاد الطعام وتقدير حجمه. بناءً على كثافة الطعام المقدرة، قم بتقدير وزنه بالجرام.
-3.  **التحليل الغذائي:** بناءً على الوزن المقدر، قدم تحليلاً مفصلاً للسعرات الحرارية والمكونات الرئيسية (بروتين، كربوهيدرات، دهون).
+3.  **التحليل الغذائي:** بناءً على الوزن المقدر، قدم تحليلاً مفصلاً للسعرات الحرارية والمكونات الرئيسية (بروتين, كربوهيدرات, دهون).
 4.  **النصيحة:** قدم نصيحة صحية موجزة حول هذا الطعام.
 5.  **ملاحظات:** إذا كان هناك أي ملاحظات إضافية من المستخدم "${input}", فخذها في الاعتبار.
 قدم ردك بتنسيق JSON حصراً.`;

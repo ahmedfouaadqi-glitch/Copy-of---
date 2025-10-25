@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ThumbsUp, ThumbsDown, X } from 'lucide-react';
+import { getItem, setItem } from '../services/storageService';
 
 interface FeedbackProps {
   responseId: string;
@@ -27,7 +28,7 @@ const FeedbackModal: React.FC<{ responseId: string; onClose: () => void }> = ({ 
             reasons: selectedReasons,
             other: otherText,
         };
-        localStorage.setItem(`feedback_details_${responseId}`, JSON.stringify(feedbackDetails));
+        setItem(`feedback_details_${responseId}`, feedbackDetails);
         onClose();
     };
 
@@ -75,14 +76,14 @@ const Feedback: React.FC<FeedbackProps> = ({ responseId }) => {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    const storedFeedback = localStorage.getItem(responseId);
-    if (storedFeedback === 'like' || storedFeedback === 'dislike') {
-      setFeedback(storedFeedback as 'like' | 'dislike');
+    const storedFeedback = getItem<'like' | 'dislike' | null>(responseId, null);
+    if (storedFeedback) {
+      setFeedback(storedFeedback);
     }
   }, [responseId]);
 
   const handleFeedback = (newFeedback: 'like' | 'dislike') => {
-    localStorage.setItem(responseId, newFeedback);
+    setItem(responseId, newFeedback);
     setFeedback(newFeedback);
     if (newFeedback === 'dislike') {
         setShowModal(true);
