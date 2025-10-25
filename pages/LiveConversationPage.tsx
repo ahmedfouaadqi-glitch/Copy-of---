@@ -1,14 +1,40 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavigationProps } from '../types';
-import { GoogleGenAI, LiveSession, LiveServerMessage, Modality, Blob } from '@google/genai';
+import { GoogleGenAI, LiveSession, LiveServerMessage, Modality, Blob, FunctionDeclaration, Type } from '@google/genai';
 import { encode, decode, decodeAudioData } from '../utils/audioUtils';
+import { createReminder } from '../services/diaryService';
 import PageHeader from '../components/PageHeader';
 import { FEATURES, SYSTEM_INSTRUCTION_CORE, LIVE_PERSONA_INSTRUCTION } from '../constants';
 import { Mic, MicOff, AlertTriangle } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const feature = FEATURES.find(f => f.pageType === 'liveConversation')!;
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
 const SYSTEM_INSTRUCTION = `${LIVE_PERSONA_INSTRUCTION}\n\n${SYSTEM_INSTRUCTION_CORE}`;
+
+// Define the function declaration for the model
+const createReminderFunctionDeclaration: FunctionDeclaration = {
+    name: 'createReminder',
+    description: 'ينشئ تذكيرًا للمستخدم ويقوم بجدولة إشعار في وقت مستقبلي. استخدم هذا عندما يطلب المستخدم صراحةً "ذكرني بـ..." أو "أنشئ تذكيرًا لـ...".',
+    parameters: {
+        type: Type.OBJECT,
+        properties: {
+            title: {
+                type: Type.STRING,
+                description: 'عنوان التذكير. مثال: "شرب الماء" أو "موعد الطبيب".',
+            },
+            details: {
+                type: Type.STRING,
+                description: 'تفاصيل إضافية اختيارية للتذكير.',
+            },
+            remindAt: {
+                type: Type.STRING,
+                description: 'الوقت والتاريخ المحددين للتذكير بتنسيق ISO 8601. مثال: "2024-08-15T15:30:00".',
+            },
+        },
+        required: ['title', 'remindAt'],
+    },
+};
 
 interface TranscriptionEntry {
     speaker: 'user' | 'model';
@@ -123,7 +149,44 @@ const LiveConversationPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                                 currentInputTranscription = '';
                                 currentOutputTranscription = '';
                             } else if (inputUpdated || outputUpdated) {
-                                // Live update of transcription
+                                // Live update of transcription can be handled here if needed
+                            }
+
+                             if (message.toolCall) {
+                                for (const fc of message.toolCall.functionCalls) {
+                                    if (fc.name === 'createReminder') {
+                                        const { title, details, remindAt } = fc.args;
+                                        let toolResult = { success: false, message: 'فشل غير معروف.' };
+
+                                        if (title && remindAt) {
+                                            try {
+                                                const reminderDate = new Date(remindAt);
+                                                toolResult = await createReminder(title, details, reminderDate);
+                                                if (toolResult.success) {
+                                                    toast.success(`تم إنشاء تذكير: ${title}`);
+                                                } else {
+                                                    toast.error(toolResult.message);
+                                                }
+                                            } catch (e) {
+                                                toolResult.message = e instanceof Error ? e.message : 'خطأ في معالجة التذكير.';
+                                                toast.error(toolResult.message);
+                                            }
+                                        } else {
+                                            toolResult.message = 'معلومات التذكير ناقصة.';
+                                            toast.error(toolResult.message);
+                                        }
+
+                                        sessionPromiseRef.current?.then((session) => {
+                                            session.sendToolResponse({
+                                                functionResponses: {
+                                                    id: fc.id,
+                                                    name: fc.name,
+                                                    response: { result: toolResult.message },
+                                                }
+                                            });
+                                        });
+                                    }
+                                }
                             }
 
                             const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData.data;
@@ -149,7 +212,8 @@ const LiveConversationPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                         responseModalities: [Modality.AUDIO],
                         inputAudioTranscription: {},
                         outputAudioTranscription: {},
-                        systemInstruction: SYSTEM_INSTRUCTION
+                        systemInstruction: SYSTEM_INSTRUCTION,
+                        tools: [{ functionDeclarations: [createReminderFunctionDeclaration] }],
                     },
                 });
                 sessionPromiseRef.current = sessionPromise;

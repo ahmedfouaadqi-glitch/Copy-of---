@@ -66,7 +66,7 @@ export interface ChatMessage {
 export interface DiaryEntry {
     id: string;
     timestamp: number;
-    type: 'food' | 'activity' | 'medication' | 'note' | 'plant_care';
+    type: 'food' | 'activity' | 'medication' | 'note' | 'plant_care' | 'reminder';
     icon: string;
     title: string;
     details: string;

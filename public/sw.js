@@ -1,12 +1,13 @@
 // Define a cache name
-const CACHE_NAME = 'ai-health-app-cache-v1';
+const CACHE_NAME = 'ai-health-app-cache-v2';
 
 // List of files to cache
 const URLS_TO_CACHE = [
   '/',
   '/index.html',
-  // You might need to add specific paths to your main JS/CSS bundles if they have unique names
-  // For this setup with vite/esbuild, the browser will request them and we'll cache them on the fly.
+  '/icon-192x192.png',
+  '/icon-512x512.png',
+  '/manifest.json'
 ];
 
 // Install event: opens a cache and adds the core files to it
@@ -17,49 +18,7 @@ self.addEventListener('install', event => {
         console.log('Opened cache');
         return cache.addAll(URLS_TO_CACHE);
       })
-  );
-});
-
-// Fetch event: serves responses from cache if available, otherwise fetches from network
-self.addEventListener('fetch', event => {
-  // We only want to cache GET requests.
-  if (event.request.method !== 'GET') {
-    return;
-  }
-  
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-
-        // Clone the request because it's a stream and can only be consumed once.
-        const fetchRequest = event.request.clone();
-
-        return fetch(fetchRequest).then(
-          response => {
-            // Check if we received a valid response
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            // Clone the response because it's also a stream.
-            const responseToCache = response.clone();
-
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                // We don't cache requests to the Gemini API or other external APIs
-                if (!event.request.url.includes('generativelanguage.googleapis.com')) {
-                    cache.put(event.request, responseToCache);
-                }
-              });
-
-            return response;
-          }
-        );
-      })
+      .then(() => self.skipWaiting()) // Activate new SW immediately
   );
 });
 
@@ -71,10 +30,87 @@ self.addEventListener('activate', event => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
+            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
+    }).then(() => self.clients.claim()) // Take control of all clients
+  );
+});
+
+
+// Fetch event: serves responses from cache if available, otherwise fetches from network
+self.addEventListener('fetch', event => {
+  // We only want to cache GET requests.
+  if (event.request.method !== 'GET' || event.request.url.startsWith('chrome-extension://')) {
+    return;
+  }
+  
+  event.respondWith(
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.match(event.request).then(response => {
+        const fetchPromise = fetch(event.request).then(networkResponse => {
+            // Don't cache external APIs
+            if (event.request.url.includes('generativelanguage.googleapis.com')) {
+                return networkResponse;
+            }
+            // Check for valid response to cache
+            if (networkResponse && networkResponse.status === 200) {
+                cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+        });
+        // Return cached response immediately if available, and fetch update in background.
+        return response || fetchPromise;
+      });
+    })
+  );
+});
+
+
+// Listener for server-sent push notifications
+self.addEventListener('push', event => {
+  console.log('[Service Worker] Push Received.');
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = { title: 'الروح التقنية', body: event.data.text() };
+    }
+  }
+  
+  const title = data.title || 'رسالة جديدة من الروح التقنية';
+  const options = {
+    body: data.body || 'لديك إشعار جديد.',
+    icon: '/icon-192x192.png',
+    badge: '/icon-192x192.png',
+    vibrate: [100, 50, 100],
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Listener for notification click
+self.addEventListener('notificationclick', event => {
+  console.log('[Service Worker] Notification click Received.');
+
+  event.notification.close();
+
+  event.waitUntil(
+    clients.matchAll({
+      type: "window"
+    }).then(clientList => {
+      for (let i = 0; i < clientList.length; i++) {
+        const client = clientList[i];
+        if (client.url === '/' && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow('/');
+      }
     })
   );
 });
