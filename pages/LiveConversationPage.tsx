@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavigationProps } from '../types';
-// FIX: Removed import for 'LiveSession' as it is not an exported member.
-import { GoogleGenAI, LiveServerMessage, Modality, Blob, FunctionDeclaration, Type } from '@google/genai';
+import { GoogleGenAI, LiveSession, LiveServerMessage, Modality, Blob, FunctionDeclaration, Type } from '@google/genai';
 import { encode, decode, decodeAudioData } from '../utils/audioUtils';
 import { createReminder } from '../services/diaryService';
 import PageHeader from '../components/PageHeader';
@@ -60,14 +59,12 @@ const LiveConversationPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const [error, setError] = useState<string | null>(null);
     const [transcription, setTranscription] = useState<TranscriptionEntry[]>([]);
     
-    // FIX: Replaced 'LiveSession' with 'any' as it is not an exported member.
-    const sessionRef = useRef<any | null>(null);
+    const sessionRef = useRef<LiveSession | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
     const processorRef = useRef<ScriptProcessorNode | null>(null);
     const outputAudioContextRef = useRef<AudioContext | null>(null);
-    // FIX: Replaced 'LiveSession' with 'any' as it is not an exported member.
-    const sessionPromiseRef = useRef<Promise<any> | null>(null);
+    const sessionPromiseRef = useRef<Promise<LiveSession> | null>(null);
     
     let nextStartTime = 0;
 
@@ -163,10 +160,8 @@ const LiveConversationPage: React.FC<NavigationProps> = ({ navigateTo }) => {
 
                                         if (title && remindAt) {
                                             try {
-                                                // FIX: Cast `remindAt` to string to satisfy the Date constructor.
-                                                const reminderDate = new Date(remindAt as string);
-                                                // FIX: Cast `title` and `details` to their expected types.
-                                                toolResult = await createReminder(title as string, details as string | null, reminderDate);
+                                                const reminderDate = new Date(remindAt);
+                                                toolResult = await createReminder(title, details, reminderDate);
                                                 if (toolResult.success) {
                                                     toast.success(`تم إنشاء تذكير: ${title}`);
                                                 } else {

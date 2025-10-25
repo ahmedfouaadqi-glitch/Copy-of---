@@ -3,7 +3,7 @@ import { NavigationProps } from '../types';
 import { generateVideo, getVideosOperation } from '../services/geminiService';
 import PageHeader from '../components/PageHeader';
 import { FEATURES } from '../constants';
-import { Clapperboard, Sparkles, Send, Download, RefreshCw } from 'lucide-react';
+import { Clapperboard, Sparkles, Send, Download, RefreshCw, KeyRound, AlertTriangle } from 'lucide-react';
 import MediaInput from '../components/MediaInput';
 import toast from 'react-hot-toast';
 import { GenerateVideosOperation } from '@google/genai';
@@ -19,6 +19,7 @@ const LOADING_MESSAGES = [
 ];
 
 const VideoGenerationPage: React.FC<NavigationProps> = ({ navigateTo }) => {
+    const [apiKeySelected, setApiKeySelected] = useState(false);
     const [image, setImage] = useState<string | null>(null);
     const [prompt, setPrompt] = useState('');
     const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16'>('16:9');
@@ -29,10 +30,24 @@ const VideoGenerationPage: React.FC<NavigationProps> = ({ navigateTo }) => {
     const loadingIntervalRef = useRef<number | null>(null);
 
     useEffect(() => {
+        const checkKey = async () => {
+            if (window.aistudio && await window.aistudio.hasSelectedApiKey()) {
+                setApiKeySelected(true);
+            }
+        };
+        checkKey();
+
         return () => {
             if (loadingIntervalRef.current) clearInterval(loadingIntervalRef.current);
         };
     }, []);
+
+    const handleSelectKey = async () => {
+        if (window.aistudio) {
+            await window.aistudio.openSelectKey();
+            setApiKeySelected(true);
+        }
+    };
 
     const resetState = () => {
         setImage(null);
@@ -73,7 +88,7 @@ const VideoGenerationPage: React.FC<NavigationProps> = ({ navigateTo }) => {
             }
 
             if (operation.error) {
-                throw new Error(String(operation.error.message));
+                throw new Error(operation.error.message);
             }
 
             const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
@@ -89,12 +104,43 @@ const VideoGenerationPage: React.FC<NavigationProps> = ({ navigateTo }) => {
 
         } catch (e) {
             const errorMessage = e instanceof Error ? e.message : 'حدث خطأ غير متوقع.';
-            setError(errorMessage);
+            if (errorMessage.includes('Requested entity was not found')) {
+                 setError("فشل التحقق من مفتاح API. الرجاء تحديده مرة أخرى.");
+                 setApiKeySelected(false);
+            } else {
+                setError(errorMessage);
+            }
         } finally {
             setIsLoading(false);
             if (loadingIntervalRef.current) clearInterval(loadingIntervalRef.current);
         }
     };
+
+    if (!apiKeySelected) {
+        return (
+            <div className="bg-gray-50 dark:bg-black min-h-screen">
+                <PageHeader navigateTo={navigateTo} title={feature.title} Icon={feature.Icon} color={feature.color} />
+                <div className="p-4 text-center">
+                    <div className="bg-yellow-50 dark:bg-black border-l-4 border-yellow-400 text-yellow-800 dark:text-yellow-300 p-4 mb-6" role="alert">
+                         <div className="flex">
+                            <div className="py-1"><AlertTriangle className="h-6 w-6 text-yellow-500 mr-4" /></div>
+                            <div>
+                                <p className="font-bold">مطلوب مفتاح API</p>
+                                <p className="text-sm">هذه الميزة التجريبية تتطلب منك اختيار مفتاح API خاص بك من منصة المطورين.</p>
+                                <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="text-sm underline hover:text-yellow-900 dark:hover:text-yellow-100">
+                                    معلومات حول الفوترة
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <button onClick={handleSelectKey} className="p-3 bg-blue-500 text-white rounded-md flex items-center justify-center gap-2 mx-auto">
+                        <KeyRound size={18} />
+                        اختيار مفتاح API
+                    </button>
+                </div>
+            </div>
+        );
+    }
     
     if (isLoading) {
         return (

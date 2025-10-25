@@ -10,7 +10,7 @@ const handleGeminiError = (error: any): string => {
     let message = "فشل الاتصال بالذكاء الاصطناعي. يرجى المحاولة مرة أخرى.";
     if (error.message) {
         if (error.message.includes('API key not valid')) {
-            message = "مفتاح API غير صالح. يرجى التأكد من أن المفتاح صحيح ولديه الصلاحيات اللازمة.";
+            message = "مفتاح API غير صالح. يرجى التحقق من مفتاحك والمحاولة مرة أخرى (خاص بخدمة إنشاء الفيديو).";
         } else if (error.message.includes('429')) {
              message = "تم تجاوز حد الطلبات. يرجى المحاولة مرة أخرى لاحقًا.";
         } else if (error.message.includes('SAFETY')) {
