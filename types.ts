@@ -237,7 +237,7 @@ export interface ProactiveInsight {
 }
 
 // FIX: Define SpiritMessageType and SpiritMessage for the "spirit message" feature.
-export type SpiritMessageType = 'tip' | 'joke' | 'hint' | 'alert';
+export type SpiritMessageType = 'tip' | 'joke' | 'hint' | 'alert' | 'quote';
 
 export interface SpiritMessage {
     type: SpiritMessageType;

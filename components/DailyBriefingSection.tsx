@@ -16,6 +16,7 @@ const SpiritMessageCard: React.FC<{ spiritMessage: SpiritMessage }> = ({ spiritM
         case 'joke': Icon = Smile; title = 'ضحكة اليوم'; colorClass = 'text-pink-500'; break;
         case 'hint': Icon = Sparkles; title = 'تلميح الروح'; colorClass = 'text-purple-500'; break;
         case 'alert': Icon = Bell; title = 'تنبيه ودي'; colorClass = 'text-red-500'; break;
+        case 'quote': Icon = HeartPulse; title = 'اقتباس ملهم'; colorClass = 'text-green-500'; break;
         default: Icon = Lightbulb; title = 'رسالة اليوم'; colorClass = 'text-gray-500';
     }
 

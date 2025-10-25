@@ -77,7 +77,7 @@ export const getDailySpiritMessage = async (userProfile: UserProfile): Promise<S
             context = randomUnusedFeature.title;
         } else {
             // If all features used, choose randomly between tip, joke, or a "pro tip" hint
-            const messageTypes: SpiritMessageType[] = ['tip', 'joke', 'hint'];
+            const messageTypes: SpiritMessageType[] = ['tip', 'joke', 'hint', 'quote'];
             messageType = messageTypes[Math.floor(Math.random() * messageTypes.length)];
 
             if (messageType === 'hint') {

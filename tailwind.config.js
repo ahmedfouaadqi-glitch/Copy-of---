@@ -25,7 +25,7 @@ export default {
     'border-orange-500', 'bg-orange-500', 'hover:bg-orange-600', 'bg-orange-50', 'border-orange-200', 'dark:border-orange-500/50', 'text-orange-700', 'dark:text-orange-300', 'hover:border-orange-400', 'dark:hover:border-orange-400', 'text-orange-800', 'dark:text-orange-300',
     
     // Green (Added)
-    'border-green-500', 'bg-green-500', 'hover:bg-green-600', 'bg-green-50', 'border-green-200', 'dark:border-green-500/50', 'text-green-700', 'dark:text-green-300', 'hover:border-green-400', 'dark:hover:border-green-400', 'text-green-800', 'dark:text-green-300',
+    'border-green-500', 'bg-green-500', 'hover:bg-green-600', 'bg-green-50', 'border-green-200', 'dark:border-green-500/50', 'text-green-700', 'dark:text-green-300', 'hover:border-green-400', 'dark:hover:border-green-400', 'text-green-800', 'dark:text-green-300', 'text-green-500',
 
     // Purple (Added)
     'border-purple-500', 'bg-purple-500', 'hover:bg-purple-600', 'bg-purple-50', 'border-purple-200', 'dark:border-purple-500/50', 'text-purple-700', 'dark:text-purple-300', 'hover:border-purple-400', 'dark:hover:border-purple-400', 'text-purple-800', 'dark:text-purple-300',

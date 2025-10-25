@@ -293,6 +293,9 @@ export const getSpiritMessageFromGemini = async (messageType: SpiritMessageType,
                 prompt += `\n**نوع الرسالة: تلميح (hint).** قدم تلميحاً ذكياً ومفيداً حول الميزة التالية لمساعدة المستخدم على اكتشافها: "${context}". اجعل التلميح شخصياً ومثيراً للفضول.`;
             }
             break;
+        case 'quote':
+            prompt += `\n**نوع الرسالة: اقتباس (quote).** قدم اقتباساً ملهماً وقصيراً واحداً فقط، وحاول ربطه بهدف المستخدم الرئيسي: "${userProfile.mainGoal}".`;
+            break;
         default:
             return "كل يوم هو فرصة جديدة. استثمرها بحكمة.";
     }
