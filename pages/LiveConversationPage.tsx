@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavigationProps } from '../types';
-import { GoogleGenAI, LiveSession, LiveServerMessage, Modality, Blob, FunctionDeclaration, Type } from '@google/genai';
+// FIX: The 'LiveSession' type is not exported from '@google/genai'. It will be defined locally.
+import { GoogleGenAI, LiveServerMessage, Modality, Blob, FunctionDeclaration, Type } from '@google/genai';
 import { encode, decode, decodeAudioData } from '../utils/audioUtils';
 import { createReminder } from '../services/diaryService';
 import PageHeader from '../components/PageHeader';
@@ -11,6 +12,9 @@ import toast from 'react-hot-toast';
 const feature = FEATURES.find(f => f.pageType === 'liveConversation')!;
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
 const SYSTEM_INSTRUCTION = `${LIVE_PERSONA_INSTRUCTION}\n\n${SYSTEM_INSTRUCTION_CORE}`;
+
+// FIX: Define LiveSession type using Awaited and ReturnType as it's not exported.
+type LiveSession = Awaited<ReturnType<typeof ai.live.connect>>;
 
 // Define the function declaration for the model
 const createReminderFunctionDeclaration: FunctionDeclaration = {
@@ -158,10 +162,13 @@ const LiveConversationPage: React.FC<NavigationProps> = ({ navigateTo }) => {
                                         const { title, details, remindAt } = fc.args;
                                         let toolResult = { success: false, message: 'فشل غير معروف.' };
 
-                                        if (title && remindAt) {
+                                        // FIX: Add type checks for arguments from function call response, as they are 'unknown'.
+                                        if (typeof title === 'string' && title && typeof remindAt === 'string' && remindAt) {
                                             try {
                                                 const reminderDate = new Date(remindAt);
-                                                toolResult = await createReminder(title, details, reminderDate);
+                                                // FIX: Safely handle 'details' which could also be of an unknown type.
+                                                const detailsString = typeof details === 'string' ? details : null;
+                                                toolResult = await createReminder(title, detailsString, reminderDate);
                                                 if (toolResult.success) {
                                                     toast.success(`تم إنشاء تذكير: ${title}`);
                                                 } else {
